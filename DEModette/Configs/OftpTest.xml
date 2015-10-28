@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<des xmlns="http://tecware-gmbh.de/dev/des/2014" 
+		 xmlns:o="http://tecware-gmbh.de/dev/des/2014/odette"
+		 version="330">
+	<server logpath="Log">
+		<resolve>..\bin\Debug</resolve>
+		<load>DEM.Odette</load>
+	</server>
+
+	<http threads="1">
+	</http>
+	<cron />
+	<luaengine>
+	</luaengine>
+
+	<o:oftp name="oftp" displayname="Odette File Protocol">
+
+		<o:ofileservice name="test">
+		</o:ofileservice>
+		
+	</o:oftp>
+</des>

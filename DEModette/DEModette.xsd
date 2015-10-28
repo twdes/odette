@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="DEModettte"
+           targetNamespace="http://tecware-gmbh.de/dev/des/2014/odette"
+           elementFormDefault="qualified"
+           xmlns="http://tecware-gmbh.de/dev/des/2014"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+					 xmlns:o="http://tecware-gmbh.de/dev/des/2014/odette">
+
+	<xs:import namespace="http://tecware-gmbh.de/dev/des/2014" />
+
+	<xs:element name="ofileservice">
+		<xs:annotation>
+			<xs:documentation>File service that handles the messages for the oftp item. </xs:documentation>
+			<xs:appinfo>
+				<class>TecWare.DE.Odette.Services.DirectoryFileServiceItem</class>
+			</xs:appinfo>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="ConfigLogItemType">
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="oftp" substitutionGroup="configItem">
+		<xs:annotation>
+			<xs:documentation>Initialization of a oftp protocol handler.</xs:documentation>
+			<xs:appinfo>
+				<class>TecWare.DE.Odette.OdetteFileTransferProtocolItem</class>
+			</xs:appinfo>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="ConfigLogItemType">
+					<xs:sequence minOccurs="0" maxOccurs="unbounded">
+						<xs:element ref="o:ofileservice" minOccurs="0" maxOccurs="unbounded" />
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
