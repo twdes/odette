@@ -49,6 +49,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Network\OdetteConnectTcp.cs" />
+    <Compile Include="Network\OdetteListenerTcp.cs" />
+    <Compile Include="Network\OdetteNetworkStream.cs" />
     <Compile Include="OdetteFileService.cs" />
     <Compile Include="OdetteNetworkService.cs" />
     <Compile Include="OdetteFileTransferProtocol.cs" />
@@ -71,6 +74,7 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="packages.config" />
+    <None Include="Services\DirectoryFileService.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Configs\OftpTest.xml" />

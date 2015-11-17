@@ -18,6 +18,119 @@
 		<xs:complexType>
 			<xs:complexContent>
 				<xs:extension base="ConfigLogItemType">
+					<xs:attribute name="destination" use="required">
+						<xs:annotation>
+							<xs:documentation>Odette destination id of the end point.</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:maxLength value="26" />
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+					<xs:attribute name="priority" type="xs:int" use="optional" default="100">
+						<xs:annotation>
+							<xs:documentation>Sort order for services with the same destination.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="passwordHash" type="xs:string" use="optional">
+						<xs:annotation>
+							<xs:documentation>Password definition for the destination.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="inFilter" use="optional" default="*">
+						<xs:annotation>
+							<xs:documentation>Filter for creating files.</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:list itemType="xs:string" />
+						</xs:simpleType>
+					</xs:attribute>
+					<xs:attribute name="in" type="PathType" use="optional">
+						<xs:annotation>
+							<xs:documentation>Defines the directory for receiving files.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="out" type="PathType" use="optional">
+						<xs:annotation>
+							<xs:documentation>Defines the directory for sending files.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="listenerTcp">
+		<xs:annotation>
+			<xs:documentation>Defines a listnener in bound traffic.</xs:documentation>
+			<xs:appinfo>
+				<class>TecWare.DE.Odette.Network.OdetteListenerTcpItem</class>
+			</xs:appinfo>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="ConfigItemType">
+					<xs:attribute name="address" type="xs:string" use="optional" default="0.0.0.0">
+						<xs:annotation>
+							<xs:documentation>Defines the address to listen add. For IPv6 just set the address to one.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="port" type="xs:unsignedShort" use="optional" default="3305">
+						<xs:annotation>
+							<xs:documentation>Defines port to listen at.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="userData" use="optional">
+						<xs:annotation>
+							<xs:documentation>This string will be send to the communication endpoint.</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:maxLength value="8" />
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+					<xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
+						<xs:annotation>
+							<xs:documentation>The port for SSL connections is 3306.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="connectTcp">
+		<xs:annotation>
+			<xs:documentation>Tcp connection that will be created on demand, for a pro active communication.</xs:documentation>
+			<xs:appinfo>
+				<class>TecWare.DE.Odette.Network.OdetteConnectTcpItem</class>
+			</xs:appinfo>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="ConfigItemType">
+					<xs:attribute name="addr" type="xs:string" use="required">
+						<xs:annotation>
+							<xs:documentation>Remote address or dns to connect to.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="port" type="xs:unsignedShort" use="optional" default="3305">
+						<xs:annotation>
+							<xs:documentation>Defines the port.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
+						<xs:annotation>
+							<xs:documentation>Use a ssl connection (use 3306 for the port).</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="bound" type="CronBound" use="optional">
+						<xs:annotation>
+							<xs:documentation>Defines the schedule for the conect to the remote end-point.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
 				</xs:extension>
 			</xs:complexContent>
 		</xs:complexType>
@@ -35,7 +148,29 @@
 				<xs:extension base="ConfigLogItemType">
 					<xs:sequence minOccurs="0" maxOccurs="unbounded">
 						<xs:element ref="o:ofileservice" minOccurs="0" maxOccurs="unbounded" />
+						<xs:element ref="o:listenerTcp" minOccurs="0" maxOccurs="unbounded" />
+						<xs:element ref="o:connectTcp" minOccurs="0" maxOccurs="unbounded" />
 					</xs:sequence>
+					<xs:attribute name="odetteId" use="required">
+						<xs:annotation>
+							<xs:documentation>Odette id for senting files.</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:maxLength value="25" />
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+					<xs:attribute name="odettePassword" use="optional" default="">
+						<xs:annotation>
+							<xs:documentation>Challange password for the incoming connections.</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:maxLength value="8" />
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
 				</xs:extension>
 			</xs:complexContent>
 		</xs:complexType>
