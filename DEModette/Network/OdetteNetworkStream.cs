@@ -15,13 +15,15 @@ namespace TecWare.DE.Odette.Network
 		private const byte StreamTransmissionHeader = (Version << 4) | (Flags & 4);
 		
 		private readonly Stream stream;
+		private readonly string name;
 		private readonly string userData;
 
 		#region -- Ctor/Dtor --------------------------------------------------------------
 
-		public OdetteNetworkStream(Stream stream, string userData)
+		public OdetteNetworkStream(Stream stream, string name, string userData)
 		{
 			this.stream = stream;
+			this.name = name;
 			this.userData = userData;
 		} // ctor
 
@@ -89,6 +91,7 @@ namespace TecWare.DE.Odette.Network
 
 		#endregion
 
+		public string Name => name;
 		public string UserData => userData;
 	} // class OdetteNetworkStream
 

@@ -12,45 +12,6 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette.Network
 {
-	public interface IListenerTcp
-	{
-		IDisposable RegisterListener(IPAddress address, ushort port, Action<Stream> data);
-		void RegisterConnection(IPAddress address, ushort port, Action<Stream> data);
-	}
-
-
-	public class SocketStream : Stream
-	{
-		public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }
-
-		public override void SetLength(long value) { throw new NotSupportedException(); }
-
-		public override bool CanRead => true;
-		public override bool CanWrite => true;
-		public override bool CanSeek => false;
-
-
-		public override long Position { get { throw new NotSupportedException(); } set { throw new NotSupportedException(); } }
-		public override long Length { get { throw new NotSupportedException(); } }
-
-
-		public override void Flush()
-		{
-			throw new NotImplementedException();
-		}
-
-		public override int Read(byte[] buffer, int offset, int count)
-		{
-			throw new NotImplementedException();
-		}
-
-
-		public override void Write(byte[] buffer, int offset, int count)
-		{
-			throw new NotImplementedException();
-		}
-	}
-
 	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	internal sealed	class OdetteListenerTcpItem :  DEConfigItem
@@ -70,6 +31,7 @@ namespace TecWare.DE.Odette.Network
 		{
 			if (disposing)
 				Procs.FreeAndNil(ref currentListener);
+
 			base.Dispose(disposing);
 		} // proc Dispose
 
@@ -105,8 +67,9 @@ namespace TecWare.DE.Odette.Network
 		private void CreateHandler(Stream socket)
 		{
 			var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
+
 			// start the protocol
-			Task.Run(() => protocol.StartProtocolAsync(new OdetteNetworkStream(socket, Config.GetAttribute("userData", String.Empty)), false));
+			Task.Run(() => protocol.StartProtocolAsync(new OdetteNetworkStream(socket, "tcp:" + serverTcp.GetStreamInfo(socket), Config.GetAttribute("userData", String.Empty)), false));
 		} // proc CreateHandler
 
 		private void CreateSslHandler(Stream socket)

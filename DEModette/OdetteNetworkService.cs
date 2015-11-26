@@ -26,6 +26,8 @@ namespace TecWare.DE.Odette
 		/// <returns></returns>
 		Task SendAsync(byte[] buffer, int filled);
 
+		/// <summary>Unique name for channel, e.g. remote ip + protocol.</summary>
+		string Name { get; }
 		/// <summary>UserData, that will sent to the communication partner on connect.</summary>
 		string UserData { get; }
 	} // class IOdetteFtpChannel

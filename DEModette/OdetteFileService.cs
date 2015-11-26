@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TecWare.DE.Server;
 using TecWare.DE.Stuff;
 
@@ -15,9 +11,13 @@ namespace TecWare.DE.Odette
 	/// <summary></summary>
 	public enum OdetteFileFormat
 	{
+		/// <summary>Record file with a fixed record size.</summary>
 		Fixed,
+		/// <summary>Record file with a variable record size.</summary>
 		Variable,
+		/// <summary>Binary file.</summary>
 		Unstructured,
+		/// <summary>Text file (is the responsiblilty of the file server to handle the charsets).</summary>
 		Text
 	} // enum OdetteFileFormat
 
@@ -29,11 +29,15 @@ namespace TecWare.DE.Odette
 	/// <summary></summary>
 	public enum OdetteOutFileState
 	{
-		/// <summary>File needs to send.</summary>
+		/// <summary>Not used.</summary>
 		New,
+		/// <summary>File needs to send.</summary>
+		Sent,
 		/// <summary>Waiting for the End to End response.</summary>
 		WaitEndToEnd,
 		/// <summary>Communication finished.</summary>
+		ReceivedEndToEnd,
+		/// <summary>Not used.</summary>
 		Finished
 	} // enum OdetteOutFileState
 
@@ -73,10 +77,34 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
+	#region -- class OdetteFileMutable --------------------------------------------------
+
+	///////////////////////////////////////////////////////////////////////////////
+	/// <summary></summary>
+	public sealed class OdetteFileMutable : IOdetteFile
+	{
+		private readonly string virtualFileName;
+		private readonly DateTime fileStamp;
+		private readonly string originator;
+
+		public OdetteFileMutable(string virtualFileName, DateTime fileStamp, string originator)
+		{
+			this.virtualFileName = virtualFileName;
+			this.fileStamp = fileStamp;
+			this.originator = originator;
+		} // ctor
+
+		public string VirtualFileName => virtualFileName;
+		public DateTime FileStamp => fileStamp;
+		public string Originator => originator;
+	} // class OdetteFileMutable
+
+	#endregion
+
 	#region -- interface IOdetteFileDescription -----------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////
-	/// <summary>Description of the file format.</summary>
+	/// <summary>Description of the file format (optional).</summary>
 	public interface IOdetteFileDescription : IOdetteFile
 	{
 		/// <summary>Format of the file.</summary>
@@ -101,57 +129,78 @@ namespace TecWare.DE.Odette
 		/// <param name="buf"></param>
 		/// <param name="offset"></param>
 		/// <param name="count"></param>
-		/// <param name="isEof"></param>
-		void Write(byte[] buf, int offset, int count, bool isEof);
+		/// <param name="isEoR">marks a end of the current record or the complete file.</param>
+		void Write(byte[] buf, int offset, int count, bool isEoR);
 		/// <summary>File is received successful.</summary>
 		/// <returns></returns>
 		void CommitFile(long recordCount, long unitCount);
 
-		//void SetEndToEnd();
+		/// <summary>File name. The description is not used.</summary>
 		IOdetteFile Name { get; }
+
+		/// <summary>Total length in bytes.</summary>
+		long TotalLength { get; }
+		/// <summary>Number of records, only for fixed or variable files. Should be zero in other cases.</summary>
+		long RecordCount { get; }
 	} // interface IOdetteInFile 
 
 	#endregion
 
 	#region -- interface IOdetteFileReader ----------------------------------------------
 
+	///////////////////////////////////////////////////////////////////////////////
+	/// <summary>Reads a file from the file service.</summary>
 	public interface IOdetteFileReader : IDisposable
 	{
-		/// <summary></summary>
-		/// <param name="buf"></param>
+		/// <summary>Read a chunk of bytes</summary>
+		/// <param name="buf">Buffer to fill</param>
 		/// <param name="offset"></param>
 		/// <param name="count"></param>
-		int Read(byte[] buf, int offset, int count);
+		/// <param name="isEoR">marks a end of the current record or the complete file.</param>
+		/// <returns>Bytes copied in the buffer.</returns>
+		int Read(byte[] buf, int offset, int count, out bool isEoR);
 
-		//void SetEndToEnd();
+		/// <summary>Transmission failed.</summary>
+		/// <param name="answerReason"></param>
+		/// <param name="reasonText"></param>
+		/// <param name="retryFlag"></param>
+		void SetTransmissionError(OdetteAnswerReason answerReason, string reasonText, bool retryFlag);
+		/// <summary>File transmitted successful</summary>
+		void SetTransmissionState();
+
+		/// <summary>Description or name of the file. Is the description missing, it will be sent as binary file.</summary>
 		IOdetteFile Name { get; }
+		/// <summary>UserData for the send operation.</summary>
+		string UserData { get; }
+
+		/// <summary>Total length in bytes.</summary>
+		long TotalLength { get; }
+		/// <summary>Number of records, only for fixed or variable files. Should be zero in other cases.</summary>
+		long RecordCount { get; }
 	} // interface IOdetteFileReader 
 
 	#endregion
 
 	#region -- interface IOdetteFilePosition --------------------------------------------
 
+	///////////////////////////////////////////////////////////////////////////////
+	/// <summary>Extention for the IOdetteFileReader or IOdetteFileWrite to change
+	/// the current read or write position.</summary>
 	public interface IOdetteFilePosition
 	{
 		/// <summary>Reposition for the file (1k steps or records).</summary>
 		/// <param name="position"></param>
 		long Seek(long position);
-
-		/// <summary>Position in 1k or records</summary>
-		long CurrentPosition { get; }
 	} // interface IOdetteFilePosition
 
 	#endregion
 
-	#region -- interface IOdetteEndToEnd ------------------------------------------------
+	#region -- interface IOdetteFileEndToEndDescription ---------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
-	public interface IOdetteFileEndToEnd
+	/// <summary>Description of a end to end message.</summary>
+	public interface IOdetteFileEndToEndDescription
 	{
-		/// <summary>Marks the end to message as sent.</summary>
-		void Commit();
-
 		/// <summary>Dateiname</summary>
 		IOdetteFile Name { get; }
 
@@ -161,43 +210,44 @@ namespace TecWare.DE.Odette
 		string ReasonText { get; }
 		/// <summary>8 byte user data.</summary>
 		string UserData { get; }
+	} // interface IOdetteFileEndToEndDescription
+
+	#endregion
+
+	#region -- interface IOdetteFileEndToEnd --------------------------------------------
+
+	///////////////////////////////////////////////////////////////////////////////
+	/// <summary>Implements a end to end return of the file service.</summary>
+	public interface IOdetteFileEndToEnd : IOdetteFileEndToEndDescription
+	{
+		/// <summary>Marks the end to message as sent.</summary>
+		void Commit();
 	} // interface IOdetteFileEndToEnd
 
 	#endregion
 
-	//#region -- interface IOdetteOutFile -------------------------------------------------
-
-	//public interface IOdetteOutFile : IOdetteFile
-	//{
-	//	void SetTransmissionError(OdetteAnswerReason answerReason, object reasonText, bool retryFlag);
-
-	//	Stream GetDataStream();
-
-	//	void SetTransmissionState();
-
-	//	//OdetteFileFormat Format { get; }
-	//	//
-	//	//
-	//	//long FileSizeOriginal { get; }
-	//	//string Description { get; }
-	//} // interface IOdetteOutFile 
-
-	//#endregion
-
 	#region -- interface IOdetteFileService ---------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Implements a file service session for oftp.</summary>
 	public interface IOdetteFileService : IDisposable
 	{
 		/// <summary>Creates a new file in the service.</summary>
-		/// <param name="fileDescription">Description of the new file.</param>
+		/// <param name="file">Description or the file name. If the description is missing, the file will be handled as a normal binary file.</param>
 		/// <returns></returns>
-		IOdetteFileWriter CreateInFile(IOdetteFileDescription fileDescription, string userData);
+		IOdetteFileWriter CreateInFile(IOdetteFile file, string userData);
 		/// <summary>List of end to end messages, that need to send.</summary>
 		/// <returns></returns>
 		IEnumerable<IOdetteFileEndToEnd> GetEndToEnd();
-		
+
+		/// <summary>Files for send.</summary>
+		/// <returns></returns>
+		IEnumerable<Func<IOdetteFileReader>> GetOutFiles();
+
+		/// <summary>End to end received for a file.</summary>
+		/// <param name="description"></param>
+		bool UpdateOutFileState(IOdetteFileEndToEndDescription description);
+
 		/// <summary>Id of the destination.</summary>
 		string DestinationId { get; }
 		/// <summary>Sort order</summary>
@@ -220,7 +270,8 @@ namespace TecWare.DE.Odette
 		/// <summary>Fits this fileservice to the given destination.</summary>
 		/// <param name="destinationId">Destination, asked for.</param>
 		/// <param name="password">Password of the destination.</param>
-		/// <returns></returns>
+		/// <returns>File session or <c>null</c>, if the service is not responsible for the destination.</returns>
+		/// <exception cref="OdetteFileServiceException">Will result in end session, with Service is currently not available.</exception>
 		IOdetteFileService CreateFileService(string destinationId, string password);
 	} // interface IOdetteFileServiceFactory
 
@@ -229,7 +280,8 @@ namespace TecWare.DE.Odette
 	#region -- class OdetteFileService --------------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Implements a file service that host all collected file service
+	/// sessions for the current destination.</summary>
 	internal sealed class OdetteFileService : IDisposable
 	{
 		private readonly IServiceProvider sp;
@@ -271,27 +323,53 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
+		#region -- File service proxy implementation --------------------------------------
+
 		/// <summary>Create/Overrides/Resumes a new odette file, to receive.</summary>
 		/// <param name="fileDescription"></param>
 		/// <param name="userData"></param>
 		/// <returns></returns>
-		public IOdetteFileWriter CreateInFile(IOdetteFileDescription fileDescription, string userData)
+		public IOdetteFileWriter CreateInFile(IOdetteFile file, string userData)
 		{
 			foreach (var s in services)
 			{
-				var inFile = s.CreateInFile(fileDescription, userData);
+				var inFile = s.CreateInFile(file, userData);
 				if (inFile != null)
 					return inFile;
 			}
 			return null;
 		} // func CreateInFile
 
+		/// <summary>Get the files that can be committed.</summary>
+		/// <returns></returns>
 		public IEnumerable<IOdetteFileEndToEnd> GetEndToEnd()
 		{
 			foreach (var s in services)
 				foreach (var i in s.GetEndToEnd())
 					yield return i;
 		} // func GetEndToEnd
+
+		/// <summary>Files for send.</summary>
+		/// <returns></returns>
+		public IEnumerable<Func<IOdetteFileReader>> GetOutFiles()
+		{
+			foreach (var s in services)
+				foreach (var i in s.GetOutFiles())
+					yield return i;
+		} // func GetOutFiles
+
+		/// <summary>End to end received for a file.</summary>
+		/// <param name="file"></param>
+		/// <param name="description"></param>
+		public void UpdateOutFileState(IOdetteFileEndToEndDescription description)
+		{
+			foreach (var s in services)
+			{
+				if (s.UpdateOutFileState(description))
+					return;
+			}
+			throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, "E2E failed.", false);
+		} // proc UpdateOutFileState
 
 		/// <summary>File service destination id</summary>
 		public string DestinationId => destinationId;
@@ -319,6 +397,8 @@ namespace TecWare.DE.Odette
 				return r;
 			}
 		} // prop SupportsInFiles
+
+		#endregion
 	} // class OdetteFileService
 
 	#endregion

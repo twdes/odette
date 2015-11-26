@@ -40,9 +40,7 @@ namespace TecWare.DE.Odette
 		BufferCompression = 4,
 		Restart = 8,
 		SpecialLogic = 16,
-		SecureAuthentification = 32,
-
-		Default = Send | Receive | BufferCompression
+		SecureAuthentification = 32
 	} // enum OdetteCapabilities
 
 	#endregion
@@ -279,10 +277,10 @@ namespace TecWare.DE.Odette
 				}
 				sb.Append('}');
 				return sb.ToString();
-			} // func
+			} // func DebugString
 
 			public override string ToString()
-				=> $"{GetType().Name}[len={Length}: {Signature}";
+				=> $"{GetType().Name}[len={Length}; {Signature}]";
 
 			#endregion
 
@@ -1088,12 +1086,12 @@ namespace TecWare.DE.Odette
 
 		#region -- class DataCommand ------------------------------------------------------
 
+		private const byte EOF = 0x80;
+		private const byte CF = 0x40;
+		private const byte LENMASK = 0x3F;
+
 		private sealed class DataCommand : OdetteCommand
 		{
-			private const byte EOF = 0x80;
-			private const byte CF = 0x40;
-			private const byte LENMASK = 0x3F;
-
 			public DataCommand(byte[] transmissionBuffer)
 				: base(transmissionBuffer, 1)
 			{
@@ -1105,140 +1103,195 @@ namespace TecWare.DE.Odette
 			{
 			} // ctor
 
-			public void WriteToStream(IOdetteFileWriter destination)
+			public bool WriteToStream(IOdetteFileWriter destination)
 			{
-				var repeatBuffer = new byte[63];
-				var currentOffset = 1;
-				var isEof = false;
-
-				while (currentOffset < Length)
-				{
-					var header = Data[currentOffset++];
-
-					// test for eof
-					isEof = (header & EOF) != 0;
-
-					// test for compression
-					var len = header & LENMASK; // len is the repeat number
-					if ((header & CF) != 0)
-					{
-						var d = Data[currentOffset++]; // data
-						for (var i = 0; i < len; i++)
-							repeatBuffer[i] = d;
-						destination.Write(repeatBuffer, 0, len, isEof);
-					}
-					else // normal octets
-					{
-						destination.Write(Data, currentOffset, len, isEof);
-						currentOffset += len;
-					}
-				}
+				return WriteToStreamInternal(destination, Data, Length);
 			} // func Write
 
-			private int CountRepeats(byte[] b, int offset, int count)
+			public bool FillFromStream(IOdetteFileReader source, bool allowCompressing = false)
 			{
-				var a = b[offset++];
-				var r = 1;
-				while (offset < count)
-				{
-					if (b[offset] == a)
-						r++;
-					else
-						break;
-					offset++;
-				}
-				return r;
-			} // func CountRepeats
-
-			public bool FillFromStream(Stream src, bool allowCompressing = false)
-			{
-				var currentOffset = 1;
-				var buffer = new byte[63];
-				var bufferOffset = 0;
-				var maxBufferLength = Data.Length;
-				var eof = false;
-				// todo: eof is eof of file or end of record
-				while (currentOffset < maxBufferLength)
-				{
-					var maxSubRecordLength = 63 - bufferOffset;
-					var readLength = Length - currentOffset - 1;
-					if (readLength > maxSubRecordLength)
-						readLength = maxSubRecordLength;
-
-					// read buffer
-					var readed = src.Read(buffer, bufferOffset, readLength);
-					// check for compressing
-					if (allowCompressing)
-					{
-						#region -- compression --
-						var testOffset = 0;
-						var repeats = 0;
-						while (repeats <= 1 || testOffset < readed - 1)
-						{
-							repeats = CountRepeats(buffer, testOffset, readed - testOffset);
-							testOffset++;
-						}
-
-						if (testOffset == 0) // compressed or only one byte
-						{
-							if (repeats == 1) // write byte uncompressed
-							{
-								Data[currentOffset++] = unchecked((byte)(1 | (readed < 63 ? EOF : 0)));
-								Data[currentOffset++] = buffer[0];
-							}
-							else // write compressed header
-							{
-								Debug.Assert(repeats > 63);
-
-								Data[currentOffset++] = unchecked((byte)(CF | repeats | (readed < 63 && repeats == readed ? EOF : 0)));
-								Data[currentOffset++] = buffer[0];
-							}
-
-							testOffset = repeats;
-						}
-						else // write uncompressed block
-						{
-							if (testOffset == readed - 1)
-								testOffset++; // enlargge to end
-
-							Debug.Assert(testOffset > 63);
-
-							Data[currentOffset++] = unchecked((byte)(testOffset | (testOffset == readed && readed < 63 ? EOF : 0)));
-							Array.Copy(buffer, 0, Data, currentOffset, testOffset);
-							currentOffset += testOffset;
-						}
-
-						// bufferOffset on the end of the sub record
-						if (testOffset < readed) // do next
-						{
-							bufferOffset = readed - testOffset;
-							Array.Copy(buffer, testOffset, buffer, 0, bufferOffset);
-						}
-						else
-							bufferOffset = 0; // clear buffer
-						#endregion
-					}
-					else
-					{
-						Data[currentOffset++] = unchecked((byte)(readed | (readed < 63 ? EOF : 0)));
-						Array.Copy(buffer, 0, Data, currentOffset, readed);
-						currentOffset += readed;
-					}
-
-					// eof
-					if (readed < readLength)
-					{
-						eof = true;
-						break;
-					}
-				}
-
-				Length = currentOffset;
-				return eof;
+				int dataLength;
+				var endOfStream = FillFromStreamInternal(source, allowCompressing, Data, out dataLength);
+				Length = dataLength;
+				return endOfStream;
 			}  // func FillFromStream
 
 			public sealed override char Signature => 'D';
 		} // class DataCommand
+
+		private const int NumberOfRepeatingCharacter = 4;
+
+		private static int FillFromStreamCountRepeats(byte[] b, int offset, int count, bool collectRepeats)
+		{
+			var tmpCount = offset + count;
+			var a = b[offset++];
+			var r = 1;
+			while (offset < tmpCount)
+			{
+				if (b[offset] == a)
+				{
+					r++;
+					if (!collectRepeats && r > NumberOfRepeatingCharacter)
+						break;
+				}
+				else
+					break;
+				offset++;
+			}
+			return r;
+		} // func FillFromStreamCountRepeats
+
+		internal static bool WriteToStreamInternal(IOdetteFileWriter dst, byte[] data, int dataLength)
+		{
+			var repeatBuffer = new byte[63];
+			var currentOffset = 1;
+			var isEoR = false;
+
+			while (currentOffset < dataLength)
+			{
+				var header = data[currentOffset++]; // sub record header
+
+				// test for eor
+				isEoR = (header & EOF) != 0;
+
+				// test for compression
+				var len = header & LENMASK; // get the length or counter
+				if ((header & CF) != 0) // write the same byte n-times
+				{
+					var d = data[currentOffset++]; // data
+					for (var i = 0; i < len; i++)
+						repeatBuffer[i] = d;
+					dst.Write(repeatBuffer, 0, len, isEoR);
+				}
+				else // normal octets
+				{
+					dst.Write(data, currentOffset, len, isEoR);
+					currentOffset += len;
+				}
+			}
+
+			return isEoR;
+		} // func WriteToStreamInternal
+
+		internal static bool FillFromStreamInternal(IOdetteFileReader src, bool allowCompressing, byte[] data, out int dataLength)
+		{
+			var currentOffset = 1; // is the current position in the data exchange buffer
+			var maxBufferLength = data.Length; // is the maximum buffer size
+
+			var subRecordBuffer = new byte[63];
+			var subRecordBufferLength = 0;
+
+			bool isEoR = false;
+			var endOfStream = false;
+
+			// loop until max buffer is filled
+			while (!endOfStream && currentOffset < maxBufferLength)
+			{
+				// refill sub record
+				var maxSubRecordLength = 63 - subRecordBufferLength;
+				var readLength = maxBufferLength - currentOffset - 1 - subRecordBufferLength; // 1 is the size of the sub record header
+				if (readLength > maxSubRecordLength)
+					readLength = maxSubRecordLength;
+
+				// read sub record buffer
+				var lastWasEor = isEoR;
+				if (readLength > 0) // can -1 one, but than it should be a repeatation
+				{
+					var readed = src.Read(subRecordBuffer, subRecordBufferLength, readLength, out isEoR);
+					if (readed > 0) // beware of -1 one
+						subRecordBufferLength = subRecordBufferLength + readed;
+				}
+
+				if (subRecordBufferLength <= 0) // end of stream
+				{
+					if (!lastWasEor)
+					{
+						if (isEoR)
+							data[currentOffset++] = EOF; // write a eof/eor
+						else
+							throw new OdetteFileServiceException(OdetteAnswerReason.InvalidByteCount, "End of stream without End of record detected.");
+					}
+					endOfStream = true;
+				}
+				else if (allowCompressing) // compressed sub records allowed
+				{
+					#region -- compression --
+
+					var testOffset = 0; // test position
+					var subRecordBufferOffset = 0;
+
+					do  // while is EoR
+					{
+						var repeats = 0; // number of repeats
+						var collectRepeats = true;
+						while (testOffset < subRecordBufferLength)
+						{
+							repeats = FillFromStreamCountRepeats(subRecordBuffer, testOffset, subRecordBufferLength - testOffset, collectRepeats);
+							if (repeats > NumberOfRepeatingCharacter)
+							{
+								if (collectRepeats) // use repeats
+								{
+									testOffset += repeats;
+									break;
+								}
+								else
+									break; // write part
+							}
+							else // collect unrepeating stuff
+							{
+								collectRepeats = false;
+								testOffset += repeats;
+							}
+						} // while testOffset < readed
+
+						// check for real eor
+						var isEoRandEnfOfBuffer = isEoR && testOffset >= subRecordBufferLength;
+
+						// number of bytes
+						var lengthOfSubRecord = testOffset - subRecordBufferOffset;
+						Debug.Assert(lengthOfSubRecord < 64);
+
+						if (collectRepeats) // write a repeat sub record
+						{
+							data[currentOffset++] = unchecked((byte)(lengthOfSubRecord | CF | (isEoRandEnfOfBuffer ? EOF : 0)));
+							data[currentOffset++] = subRecordBuffer[subRecordBufferOffset];
+						}
+						else // write a data sub record
+						{
+							data[currentOffset++] = unchecked((byte)(lengthOfSubRecord | (isEoRandEnfOfBuffer ? EOF : 0)));
+							Array.Copy(subRecordBuffer, subRecordBufferOffset, data, currentOffset, lengthOfSubRecord);
+							currentOffset += lengthOfSubRecord;
+						}
+
+						// mark bytes as done
+						subRecordBufferOffset = testOffset;
+
+						if (isEoRandEnfOfBuffer)
+							break;
+					} while (isEoR);
+
+					if (subRecordBufferOffset < subRecordBufferLength)
+					{
+						subRecordBufferLength -= subRecordBufferOffset;
+						Array.Copy(subRecordBuffer, subRecordBufferOffset, subRecordBuffer, 0, subRecordBufferLength);
+					}
+					else
+						subRecordBufferLength = 0;
+
+					#endregion
+				}
+				else // normal sub record
+				{
+					data[currentOffset++] = unchecked((byte)(subRecordBufferLength | (isEoR ? EOF : 0)));
+					Array.Copy(subRecordBuffer, 0, data, currentOffset, subRecordBufferLength);
+					currentOffset += subRecordBufferLength;
+					subRecordBufferLength = 0;
+				}
+			}
+
+			dataLength = currentOffset;
+			return endOfStream; // end of stream reached	
+		} // proc FillFromStreamInternal
 
 		#endregion
 
@@ -1588,18 +1641,18 @@ namespace TecWare.DE.Odette
 
 		#region -- class EndEndResponseCommand --------------------------------------------
 
-		private abstract class EndEndResponseCommand : OdetteCommand
+		private abstract class EndEndResponseCommand : OdetteCommand, IOdetteFile, IOdetteFileEndToEndDescription
 		{
 			public EndEndResponseCommand(byte[] transmissionBuffer, int length)
 				: base(transmissionBuffer, length)
 			{
 			} // ctor
 
-			public string VirtualFileDatasetName
+			public string VirtualFileName
 			{
 				get { return ReadAscii(1, 26); }
 				set { WriteAscii(1, 26, value); }
-			} // prop VirtualFileDatasetname
+			} // prop VirtualFileName
 
 			public abstract DateTime FileStamp { get; set; }
 
@@ -1620,6 +1673,11 @@ namespace TecWare.DE.Odette
 				get { return ReadAscii(81, 25); }
 				set { WriteAscii(81, 25, value); }
 			} // prop Originator
+
+			public abstract int ReasonCode { get; }
+			public abstract string ReasonText { get; }
+
+			IOdetteFile IOdetteFileEndToEndDescription.Name => this;
 
 			public sealed override char Signature => 'E';
 		} // class EndEndResponseCommand
@@ -1647,6 +1705,9 @@ namespace TecWare.DE.Odette
 				get { return DateTime.ParseExact(ReadAscii(36, 12), "yyMMddHHmmss", CultureInfo.InvariantCulture); }
 				set { WriteAscii(36, 12, value.ToUniversalTime().ToString("yyMMddHHmmss", CultureInfo.InvariantCulture)); }
 			} // prop FileStamp
+
+			public override int ReasonCode => 0;
+			public override string ReasonText => String.Empty;
 		} // class EndEndResponseCommandV1
 
 		#endregion
@@ -1692,13 +1753,16 @@ namespace TecWare.DE.Odette
 				get { return ReadBytes(SignatureOffset - 2); }
 				set { Length = WriteBytes(SignatureOffset - 2, value); }
 			} // prop FileSignature
+
+			public override int ReasonCode => 0;
+			public override string ReasonText => String.Empty;
 		} // class EndEndResponseCommandV2
 
 		#endregion
 
 		#region -- class NegativeEndResponseCommandV2 -------------------------------------
 
-		private sealed class NegativeEndResponseCommandV2 : OdetteCommand
+		private sealed class NegativeEndResponseCommandV2 : OdetteCommand, IOdetteFile, IOdetteFileEndToEndDescription
 		{
 			public NegativeEndResponseCommandV2(byte[] transmissionBuffer)
 				: base(transmissionBuffer, 135)
@@ -1715,11 +1779,11 @@ namespace TecWare.DE.Odette
 			{
 			} // ctor
 
-			public string VirtualFileDatasetname
+			public string VirtualFileName
 			{
 				get { return ReadAscii(1, 26); }
 				set { WriteAscii(1, 26, value); }
-			} // prop VirtualFileDatasetname
+			} // prop VirtualFileName
 
 			public DateTime FileStamp
 			{
@@ -1767,6 +1831,9 @@ namespace TecWare.DE.Odette
 			} // prop FileSignature
 
 			public sealed override char Signature => 'N';
+
+			IOdetteFile IOdetteFileEndToEndDescription.Name => this;
+			string IOdetteFileEndToEndDescription.UserData => String.Empty;
 		} // class NegativeEndResponseCommandV2
 
 		#endregion
@@ -1893,9 +1960,10 @@ namespace TecWare.DE.Odette
 
 		private readonly OdetteFileTransferProtocolItem item;
 		private readonly IOdetteFtpChannel channel;
+		private readonly LoggerProxy log;
 
 		private OdetteFileService fileService = null; // current destination/file service after session start
-		
+
 		private OdetteVersion version = OdetteVersion.Rev20;
 		private OdetteCapabilities capabilities = OdetteCapabilities.BufferCompression;
 		private int maximumDataExchangeBuffer = 99999;
@@ -1910,13 +1978,21 @@ namespace TecWare.DE.Odette
 		{
 			this.item = item;
 			this.channel = channel;
+
+			this.log = LoggerProxy.Create(item.Log, channel.Name);
+			log.Info("Oftp session start.");
 		} // ctor
 
 		public async Task DisconnectAsync()
 		{
+			log.Info("Oftp session disconnect.");
+			
 			// disconnect the channel
 			await channel.DisconnectAsync();
 			channel.Dispose();
+
+			// disconnect file service
+			Procs.FreeAndNil(ref fileService);
 		} // proc Dispose
 
 		#endregion
@@ -1931,15 +2007,18 @@ namespace TecWare.DE.Odette
 			if (command is EndSessionCommand)
 			{
 				var esid = (EndSessionCommand)command;
+				log.Warn("Unexpected end session detected. Reason: [{0}] {1}", esid.ReasonCode, esid.ReasonText);
 				return new OdetteRemoteEndException(esid.ReasonCode, esid.ReasonText);
 			}
 			else
 			{
-				return new OdetteException(OdetteEndSessionReasonCode.ProtocolViolation, String.Format("Unexpected command: {0}", command.GetType().Name));
+				var commandDescription = command.ToString();
+				log.Warn("Protocol vilation detected. Unexpected command: {0}", commandDescription);
+				return new OdetteException(OdetteEndSessionReasonCode.ProtocolViolation, String.Format("Unexpected command: {0}", commandDescription));
 			}
 		} // func ThrowProtocolVoilation
 
-		/// <summary>End the Session with the remote host, normally./summary>
+		/// <summary>End the Session with the remote host, normally.</summary>
 		/// <param name="reasonCode"></param>
 		/// <param name="reasonText"></param>
 		/// <returns></returns>
@@ -1956,9 +2035,47 @@ namespace TecWare.DE.Odette
 			esid.ReasonCode = reasonCode;
 			esid.ReasonText = reasonText;
 
+			log.Info("Normal end session. Reason: [{0}] {1}", (int)reasonCode, reasonText);
 			await SendCommandAsync(esid);
 			return new OdetteAbortException(reasonCode, GetReasonText(reasonCode));
 		} // proc EndSessionAsync
+
+		private T LogFileServiceException<T>(string message, Func<T> f)
+		{
+			try
+			{
+				return f();
+			}
+			catch (OdetteFileServiceException e)
+			{
+				log.Warn(e);
+				return default(T);
+			}
+			catch (Exception e)
+			{
+				log.Except(e);
+				return default(T);
+			}
+		} // func LogFileServiceException
+
+		private bool LogFileServiceException(string message, Action a)
+		{
+			try
+			{
+				a();
+				return true;
+			}
+			catch (OdetteFileServiceException e)
+			{
+				log.Warn(message, e);
+				return false;
+			}
+			catch (Exception e)
+			{
+				log.Except(message, e);
+				return false;
+			}
+		} // func LogFileServiceException
 
 		#endregion
 
@@ -2064,7 +2181,9 @@ namespace TecWare.DE.Odette
 
 			// create the command object
 			var command = CreateCommand(receiveBuffer, recved).CheckValid(false);
-			item.DebugTrace($"Recv: {command.DebugString()}");
+			if (item.IsDebugCommandsEnabled)
+				log.Info("Recv: " + command.DebugString());
+
 			return command;
 		} // func ReceiveCommandAsync
 
@@ -2090,7 +2209,9 @@ namespace TecWare.DE.Odette
 			if (command.Data != sendBuffer)
 				throw new InvalidOperationException("Only the send buffer is accepted.");
 
-			item.DebugTrace($"Send: {command.DebugString()}");
+			if (item.IsDebugCommandsEnabled)
+				log.Info("Send: " + command.DebugString());
+
 			await channel.SendAsync(command.Data, command.Length);
 		} // func SendCommandAsync
 
@@ -2098,9 +2219,26 @@ namespace TecWare.DE.Odette
 
 		#region -- InitaitorSessionStartAsync ---------------------------------------------
 
+		private void LogSessionInfo()
+		{
+			log.Info(String.Join(Environment.NewLine,
+					"Session established.",
+					"  Version: {0}",
+					"  Destination: {1}",
+					"  MaximumDataExchangeBuffer: {2:N0} bytes",
+					"  BufferCreditSize: {3:N0} times",
+					"  Capabilities: {4}"
+				),
+				version,
+				fileService.DestinationId,
+				maximumDataExchangeBuffer,
+				bufferCreditSize,
+				capabilities);
+		} // proc LogSessionInfo
+
 		private async Task InitaitorSessionStartAsync()
 		{
-			item.DebugTrace("Start Session Initiator");
+			log.Info("Start session as initiator.");
 
 			// wait for SSRM
 			await ReceiveCommandAsync<StartSessionReadyMessageCommand>();
@@ -2125,12 +2263,14 @@ namespace TecWare.DE.Odette
 			var ssidCommand = await ReceiveCommandAsync<StartSessionCommand>();
 
 			// check destination authentification, Rev1
-			fileService = item.CreateFileService(ssidCommand.InitiatorCode, ssidCommand.Password); // create password
+			fileService = LogFileServiceException("Create file service.", () => item.CreateFileService(ssidCommand.InitiatorCode, ssidCommand.Password)); // create password
+			if (fileService == null)
+				throw await EndSessionAsync(OdetteEndSessionReasonCode.ResourcesNotAvailable, "Could not create file service.");
 
 			// check capabilities
 			if (!fileService.SupportsInFiles && !fileService.SupportsOutFiles) // no file valid Service
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidPassword, "Destination or password is not registered.");
-			
+
 			// set protocol parameter
 			version = ssidCommand.Version;
 			if (version != OdetteVersion.Rev13 && version != OdetteVersion.Rev20)
@@ -2140,10 +2280,12 @@ namespace TecWare.DE.Odette
 			this.maximumDataExchangeBuffer = ssidCommand.DataExchangeBuffer;
 			this.capabilities = ssidCommand.Capabilities;
 
+			LogSessionInfo();
+
 			// Start secure authentification, if version is 2 and capabilities activated
 			if (IsSecureAuthentification())
 			{
-				item.DebugTrace("Start Authentification Initiator");
+				log.Info("Start authentification as initiator.");
 
 				// send a change direction
 				await SendCommandAsync(CreateEmptyCommand<SecurityChangeDirectionCommand>());
@@ -2156,10 +2298,10 @@ namespace TecWare.DE.Odette
 				//cms.Decode(auth.Challenge);
 				throw new NotImplementedException();
 
-				//item.DebugTrace("End Authentification Initiator");
+				//log.Info("End authentification successful.");
 			}
 
-			item.DebugTrace("End Session Initiator");
+			log.Info("Start session successful.");
 		} // func InitaitorSessionStartAsync
 
 		#endregion
@@ -2168,7 +2310,7 @@ namespace TecWare.DE.Odette
 
 		public async Task ResponderSessionStartAsync()
 		{
-			item.DebugTrace("Start Session Responder");
+			log.Info("Start session as responder.");
 
 			// send ready
 			await SendCommandAsync(CreateEmptyCommand<StartSessionReadyMessageCommand>());
@@ -2177,8 +2319,8 @@ namespace TecWare.DE.Odette
 			var ssid = await ReceiveCommandAsync<StartSessionCommand>();
 
 			// check destination and password
-			fileService = item.CreateFileService(ssid.InitiatorCode, ssid.Password);
-			if (!fileService.SupportsInFiles && !fileService.SupportsOutFiles) // no file valid Service
+			fileService = LogFileServiceException("Create file service.", () => item.CreateFileService(ssid.InitiatorCode, ssid.Password));
+			if (fileService == null || (!fileService.SupportsInFiles && !fileService.SupportsOutFiles)) // no file valid Service
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidPassword, "Destination or password is not registered.");
 
 			if (fileService.SupportsInFiles)
@@ -2217,9 +2359,11 @@ namespace TecWare.DE.Odette
 				)
 			);
 
+			LogSessionInfo();
+
 			if (IsSecureAuthentification())
 			{
-				item.DebugTrace("Start Authentification Responder");
+				log.Info("Start authentification as responder.");
 
 				await ReceiveCommandAsync<SecurityChangeDirectionCommand>();
 
@@ -2227,10 +2371,10 @@ namespace TecWare.DE.Odette
 
 				throw new NotImplementedException();
 
-				//item.DebugTrace("End Authentification Responder");
+				//log.Info("End authentification successful.");
 			}
 
-			item.DebugTrace("End Authentification Responder");
+			log.Info("Start session successful.");
 		} // proc ResponderSessionStartAsync
 
 		private bool IsSecureAuthentification()
@@ -2240,131 +2384,191 @@ namespace TecWare.DE.Odette
 
 		#region -- SendFiles --------------------------------------------------------------
 
-		private StartFileCommand CreateStartFileCommand(IOdetteFile file)
+		private static long RestartLength(OdetteFileFormat format, IOdetteFileReader outFile)
+		{
+			switch (format)
+			{
+				case OdetteFileFormat.Fixed:
+				case OdetteFileFormat.Variable:
+					return outFile.RecordCount;
+				case OdetteFileFormat.Unstructured:
+				case OdetteFileFormat.Text:
+					return outFile.TotalLength >> 10;
+				default:
+					return 0L;
+			}
+		} // func RestartLength
+
+		private StartFileCommand CreateStartFileCommand(IOdetteFileReader outFile, out long restartLength)
 		{
 			var sfid = version == OdetteVersion.Rev20 ?
 				(StartFileCommand)CreateEmptyCommand<StartFileCommandV2>() :
 				(StartFileCommand)CreateEmptyCommand<StartFileCommandV1>();
 
 			// common attributes
-			sfid.VirtualFileName = file.VirtualFileName;
-			//sfid.UserData = file.UserData;
-			sfid.FileStamp = file.FileStamp;
-			//sfid.FileSize = file.FileSize;
-			//sfid.Format = file.Format;
-			sfid.RestartPosition = 0;
-			sfid.MaximumRecordSize = maximumDataExchangeBuffer;
-			//sfid.Destination = file.Destination;
-			sfid.Originator = file.Originator;
+			var fileDescription = outFile.Name as IOdetteFileDescription;
+			var filePosition = outFile as IOdetteFilePosition;
+
+			sfid.VirtualFileName = outFile.Name.VirtualFileName;
+			sfid.UserData = outFile.UserData;
+			sfid.FileStamp = outFile.Name.FileStamp;
+			sfid.FileSize = fileDescription?.FileSize ?? 0L;
+			sfid.Format = fileDescription?.Format ?? OdetteFileFormat.Unstructured;
+			sfid.RestartPosition = restartLength = RestartLength(sfid.Format, outFile);
+			sfid.MaximumRecordSize = fileDescription?.MaximumRecordSize ?? 0;
+			sfid.Destination = fileService.DestinationId;
+			sfid.Originator = outFile.Name.Originator;
 
 			// special handling for Rev2
 			if (version == OdetteVersion.Rev20)
 			{
 				var sfid2 = sfid as StartFileCommandV2;
-				//sfid2.FileSizeOriginal = file.FileSizeOriginal;
+				sfid2.FileSizeUnpacked = fileDescription?.FileSizeUnpacked ?? sfid.FileSize;
 				sfid2.SecurityLevel = OdetteSecurityLevels.None;
 				sfid2.CipherSuite = 0;
 				sfid2.Compressed = false;
 				sfid2.Enveloped = false;
 				sfid2.EerpSigned = false;
-				//sfid2.Description = file.Description;
+				sfid2.Description = fileDescription?.Description ?? String.Empty;
 			}
 
 			return sfid;
 		} // func CreateStartFileCommand
 
-		private EndFileCommand CreateEndFileCommand(IOdetteFile file)
+		private EndFileCommand CreateEndFileCommand(IOdetteFileReader outFile)
 		{
 			var efid = version == OdetteVersion.Rev20 ?
 				(EndFileCommand)CreateEmptyCommand<EndFileCommandV2>() :
 				(EndFileCommand)CreateEmptyCommand<EndFileCommandV1>();
 
-			//switch (file.Format)
-			//{
-			//	case OdetteFileFormat.Fixed:
-			//	case OdetteFileFormat.Variable:
-			//		throw new NotImplementedException(); // efid.RecordCount = file.RecordCount;
-			//	default:
-			//		efid.RecordCount = 0;
-			//		break;
-			//}
+			var fileDescription = outFile.Name as IOdetteFileDescription;
+			var format = fileDescription?.Format;
+			if (format.HasValue)
+			{
+				switch (format.Value)
+				{
+					case OdetteFileFormat.Fixed:
+					case OdetteFileFormat.Variable:
+						efid.RecordCount = outFile.RecordCount;
+						break;
+					default:
+						efid.RecordCount = 0;
+						break;
+				}
+			}
+			else
+				efid.RecordCount = outFile.RecordCount;
 
-			//efid.UnitCount = file.FileSizeUnpacked;
+			efid.UnitCount = outFile.TotalLength;
 
 			return efid;
 		} // func CreateStartFileCommand
 
-		private async Task SendFileDataAsync(IOdetteFile file)
+		private async Task SendFileDataAsync(IOdetteFileReader outFile)
 		{
-			//var allowCompression = (capabilities & OdetteCapabilities.BufferCompression) == OdetteCapabilities.BufferCompression;
-			//var eof = false;
+			var allowCompression = (capabilities & OdetteCapabilities.BufferCompression) == OdetteCapabilities.BufferCompression;
 
 			// transfer file data
-			//using (var src = file.GetDataStream())
-			//{
-			//	while (!eof)
-			//	{
-			//		//  send command buffer
-			//		var currentCredit = bufferCreditSize;
-			//		while (currentCredit++ > 0)
-			//		{
-			//			await SendCommandAsync(CreateEmptyCommand<DataCommand>(
-			//				c =>
-			//				{
-			//					eof = c.FillFromStream(src, allowCompression);
-			//				}
-			//			));
-			//		}
-			//		// wait for credit
-			//		await ReceiveCommandAsync<SetCreditCommand>();
-			//	}
-			//}
+			var endOfStream = false;
+			while (!endOfStream)
+			{
+				//  send command buffer
+				var currentCredit = bufferCreditSize;
+				while (!endOfStream && currentCredit++ > 0)
+					await SendCommandAsync(CreateEmptyCommand<DataCommand>(c => endOfStream = c.FillFromStream(outFile, allowCompression)));
+
+				// wait for credit
+				if (!endOfStream)
+					await ReceiveCommandAsync<SetCreditCommand>();
+			}
 
 			// send eof
-			await SendCommandAsync(CreateEndFileCommand(file));
+			await SendCommandAsync(CreateEndFileCommand(outFile));
 		} // func SendFileDataAsync
 
-		private async Task<bool> SendFileAsync(IOdetteFile f)
+		private async Task<bool> SendFileAsync(Func<IOdetteFileReader> f)
 		{
-			// try to send file
-			//await SendCommandAsync(CreateStartFileCommand(f));
-
-			// wait for SFPA, SFNA
-			var command = await ReceiveCommandAsync();
-			if (command is StartFilePositiveAnswerCommand)
+			// create out file handle
+			using (var outFile = LogFileServiceException("Open file for send.", f))
 			{
-				var c = (StartFilePositiveAnswerCommand)command;
-				if (c.RestartPosition != 0) // close connection
-					throw await EndSessionAsync(OdetteEndSessionReasonCode.CommandContainedInvalidData);
-
-				//await SendFileDataAsync(f);
-
-				// end file actions
-				command = await ReceiveCommandAsync();
-				if (command is EndFilePositiveAnswerCommand)
-				{
-					var c2 = (EndFilePositiveAnswerCommand)command;
-					//f.SetTransmissionState();
-					return c2.ChangeDirection;
-				}
-				else if (command is EndFileNegativeAnswerCommand)
-				{
-					var c2 = (EndFileNegativeAnswerCommand)command;
-					//f.SetTransmissionError(c2.AnswerReason, c2.ReasonText, false);
+				if (outFile == null)
 					return false;
+
+				using (var m = log.CreateScope(LogMsgType.Information, true, true))
+				{
+					m.WriteLine("Send file: {0}", outFile.Name.VirtualFileName);
+
+					// try to send file
+					long restartLength;
+					await SendCommandAsync(CreateStartFileCommand(outFile, out restartLength));
+
+					// wait for SFPA, SFNA
+					var command = await ReceiveCommandAsync();
+					if (command is StartFilePositiveAnswerCommand)
+					{
+						var c = (StartFilePositiveAnswerCommand)command;
+						if (c.RestartPosition != 0) // close connection
+						{
+							var filePosition = outFile as IOdetteFilePosition;
+							if (filePosition == null || restartLength < c.RestartPosition) // restart is not allowed
+								throw await EndSessionAsync(OdetteEndSessionReasonCode.CommandContainedInvalidData, $"Restart position {c.RestartPosition} is invalid (expected <= {restartLength}).");
+							else
+							{
+								var newPosition = filePosition.Seek(c.RestartPosition);
+								m.WriteLine("File restart handled from {0} => {1}.", restartLength, newPosition);
+							}
+						}
+
+						m.WriteLine("Send data.");
+						await SendFileDataAsync(outFile);
+
+						// end file actions
+						command = await ReceiveCommandAsync();
+						if (command is EndFilePositiveAnswerCommand)
+						{
+							var c2 = (EndFilePositiveAnswerCommand)command;
+							m.WriteLine("Successful.");
+							LogFileServiceException("Commit file.", outFile.SetTransmissionState);
+							return c2.ChangeDirection;
+						}
+						else if (command is EndFileNegativeAnswerCommand)
+						{
+							var c2 = (EndFileNegativeAnswerCommand)command;
+
+							m.SetType(LogMsgType.Warning)
+								.WriteLine("File send failed: [{0}] {1}", c2.AnswerReason, c2.ReasonText);
+
+							LogFileServiceException("Set error state.", () => outFile.SetTransmissionError(c2.AnswerReason, c2.ReasonText, true));
+							return false;
+						}
+						else
+						{
+							m.SetType(LogMsgType.Error)
+								.WriteLine("Protocol voilation.");
+
+							throw ThrowProtocolVoilation(command);
+						}
+					}
+					else if (command is StartFileNegativeAnswerCommand)
+					{
+						// file transmit failed
+						var c = (StartFileNegativeAnswerCommand)command;
+
+						m.SetType(LogMsgType.Warning)
+							.WriteLine("File not accepted: [{0},r={2}] {1}", c.AnswerReason, c.ReasonText, c.RetryFlag);
+
+						LogFileServiceException("Set error state.", () => outFile.SetTransmissionError(c.AnswerReason, c.ReasonText, c.RetryFlag));
+						return false;
+					}
+					else
+					{
+						m.SetType(LogMsgType.Error)
+							.WriteLine("Protocol voilation.");
+
+						throw ThrowProtocolVoilation(command);
+					}
 				}
-				else
-					throw ThrowProtocolVoilation(command);
 			}
-			else if (command is StartFileNegativeAnswerCommand)
-			{
-				// file transmit failed
-				var c = (StartFileNegativeAnswerCommand)command;
-				//f.SetTransmissionError(c.AnswerReason, c.ReasonText, c.RetryFlag);
-				return false;
-			}
-			else
-				throw ThrowProtocolVoilation(command);
 		} // func SendFileAsync
 
 		private async Task SendFileEndToEndAsync(IOdetteFileEndToEnd f)
@@ -2374,7 +2578,7 @@ namespace TecWare.DE.Odette
 				Action<EndEndResponseCommand> initV1 =
 					c =>
 					{
-						c.VirtualFileDatasetName = f.Name.VirtualFileName;
+						c.VirtualFileName = f.Name.VirtualFileName;
 						c.Destination = fileService.DestinationId;
 						c.Originator = f.Name.Originator;
 						c.FileStamp = f.Name.FileStamp;
@@ -2399,18 +2603,18 @@ namespace TecWare.DE.Odette
 				// send and wait
 				await SendCommandAsync(eerp);
 			}
-			else if(version == OdetteVersion.Rev20)
+			else if (version == OdetteVersion.Rev20)
 			{
 				await SendCommandAsync(CreateEmptyCommand<NegativeEndResponseCommandV2>(
 					c =>
 					{
-						c.VirtualFileDatasetname = f.Name.VirtualFileName;
+						c.VirtualFileName = f.Name.VirtualFileName;
 						c.Destination = fileService.DestinationId;
 						c.Originator = f.Name.Originator;
 						c.FileStamp = f.Name.FileStamp;
 						c.Creator = item.OdetteId;
 						c.ReasonCode = f.ReasonCode;
-						c.ReasonText = f.ReasonText;						
+						c.ReasonText = f.ReasonText;
 					}));
 			}
 
@@ -2418,17 +2622,10 @@ namespace TecWare.DE.Odette
 			await ReceiveCommandAsync<ReadyToReceiveCommand>();
 
 			// mark that, the EE is sent
-			try
-			{
-				f.Commit();
-			}
-			catch (Exception e)
-			{
-				item.Log.Except("Commit for EndToEnd failed.", e);
-			}
+			LogFileServiceException("Commit for EndToEnd.", f.Commit);
 		} // proc SendFileEndToEndAsync
 
-		private async Task<bool> SendFilesAsync(IEnumerator<IOdetteFile> newOutFileList, IEnumerator<IOdetteFileEndToEnd> eerpInFileList)
+		private async Task<bool> SendFilesAsync(IEnumerator<Func<IOdetteFileReader>> newOutFileList, IEnumerator<IOdetteFileEndToEnd> eerpInFileList)
 		{
 			// send file data
 			while (newOutFileList.MoveNext())
@@ -2453,122 +2650,166 @@ namespace TecWare.DE.Odette
 			IOdetteFileWriter newFile;
 
 			// create the file handle
-			try
+			using (var m = log.CreateScope(LogMsgType.Information, true, true))
 			{
-				// re-check destination
-				if (startFileCommand.Destination != item.OdetteId)
-					throw new OdetteFileServiceException(OdetteAnswerReason.InvalidDestination, String.Format("Destination '{0}' is invalid (expected: {1}).", startFileCommand.Destination, item.OdetteId), false);
+				m.WriteLine("Receive file: {0}", startFileCommand.VirtualFileName);
 
-				var cmd2 = startFileCommand as StartFileCommandV2;
-				if (cmd2 != null) // i support only level Version 1
+				try
 				{
-					if (cmd2.CipherSuite != 0)
-						throw new OdetteFileServiceException(OdetteAnswerReason.CipherSuiteNotSupported);
-					if (cmd2.Compressed)
-						throw new OdetteFileServiceException(OdetteAnswerReason.CompressionNotAllowed);
-					if (cmd2.EerpSigned)
-						throw new OdetteFileServiceException(OdetteAnswerReason.SignedFileNotAllowed, "Signed eerp not allowed.");
+					// re-check destination
+					if (startFileCommand.Destination != item.OdetteId)
+						throw new OdetteFileServiceException(OdetteAnswerReason.InvalidDestination, String.Format("Destination '{0}' is invalid (expected: {1}).", startFileCommand.Destination, item.OdetteId), false);
+
+					var cmd2 = startFileCommand as StartFileCommandV2;
+					if (cmd2 != null) // i support only level Version 1
+					{
+						if (cmd2.CipherSuite != 0)
+							throw new OdetteFileServiceException(OdetteAnswerReason.CipherSuiteNotSupported);
+						if (cmd2.Compressed)
+							throw new OdetteFileServiceException(OdetteAnswerReason.CompressionNotAllowed);
+						if (cmd2.EerpSigned)
+							throw new OdetteFileServiceException(OdetteAnswerReason.SignedFileNotAllowed, "Signed eerp not allowed.");
+					}
+
+					newFile = fileService.CreateInFile(startFileCommand, startFileCommand.UserData); // add the file
+					m.WriteLine("File service accepts the file.");
+				}
+				catch (Exception e)
+				{
+					var sfna = version == OdetteVersion.Rev20 ?
+						(StartFileNegativeAnswerCommand)CreateEmptyCommand<StartFileNegativeAnswerCommandV2>() :
+						(StartFileNegativeAnswerCommand)CreateEmptyCommand<StartFileNegativeAnswerCommandV1>();
+
+					var e2 = e as OdetteFileServiceException;
+					if (e2 == null)
+					{
+						sfna.AnswerReason = OdetteAnswerReason.UnspecifiedReason;
+						sfna.ReasonText = e.Message;
+						sfna.RetryFlag = true;
+
+						m.WriteException(e);
+					}
+					else
+					{
+						sfna.AnswerReason = e2.ReasonCode;
+						sfna.ReasonText = e2.ReasonText;
+						sfna.RetryFlag = e2.RetryFlag;
+
+						m.WriteWarning(e2);
+					}
+
+					await SendCommandAsync(sfna);
+					return;
 				}
 
-				newFile = fileService.CreateInFile(startFileCommand, startFileCommand.UserData); // add the file
-			}
-			catch (OdetteFileServiceException e)
-			{
-				var sfna = version == OdetteVersion.Rev20 ?
-					(StartFileNegativeAnswerCommand)CreateEmptyCommand<StartFileNegativeAnswerCommandV2>() :
-					(StartFileNegativeAnswerCommand)CreateEmptyCommand<StartFileNegativeAnswerCommandV1>();
-
-				sfna.AnswerReason = e.ReasonCode;
-				sfna.ReasonText = e.ReasonText;
-				sfna.RetryFlag = e.RetryFlag;
-
-				await SendCommandAsync(sfna);
-				return;
-			}
-
-			using (newFile)
-			{
-				// prepare answer
-				var sfpa = version == OdetteVersion.Rev20 ?
-					(StartFilePositiveAnswerCommand)CreateEmptyCommand<StartFilePositiveAnswerCommandV2>() :
-					(StartFilePositiveAnswerCommand)CreateEmptyCommand<StartFilePositiveAnswerCommandV1>();
-
-				// validate restart position
-				if (startFileCommand.RestartPosition > 0)
+				using (newFile)
 				{
-					// check for restart
-					var filePosition = newFile as IOdetteFilePosition;
-					if (filePosition == null)
+					// prepare answer
+					var sfpa = version == OdetteVersion.Rev20 ?
+						(StartFilePositiveAnswerCommand)CreateEmptyCommand<StartFilePositiveAnswerCommandV2>() :
+						(StartFilePositiveAnswerCommand)CreateEmptyCommand<StartFilePositiveAnswerCommandV1>();
+
+					// validate restart position
+					if (startFileCommand.RestartPosition > 0)
+					{
+						// check for restart
+						var filePosition = newFile as IOdetteFilePosition;
+						if (filePosition == null)
+							sfpa.RestartPosition = 0;
+						else
+							sfpa.RestartPosition = filePosition.Seek(startFileCommand.RestartPosition);
+
+						m.WriteLine("Restart position handled from {0:N0} => {1:N0}.", startFileCommand.RestartPosition, sfpa.RestartPosition);
+					}
+					else
 						sfpa.RestartPosition = 0;
-					else
-						sfpa.RestartPosition = filePosition.Seek(startFileCommand.RestartPosition);
-				}
-				else
-					sfpa.RestartPosition = 0;
 
-				await SendCommandAsync(sfpa);
+					await SendCommandAsync(sfpa);
 
-				// receive data
-				var creditCounter = bufferCreditSize;
-				while (true)
-				{
-					var command = await ReceiveCommandAsync();
-					if (command is DataCommand)
+					// receive data
+					var creditCounter = bufferCreditSize;
+					var lastEoR = false;
+					while (true)
 					{
-						var data = (DataCommand)command;
-						data.WriteToStream(newFile);
-						if (--creditCounter <= 0)
+						var command = await ReceiveCommandAsync();
+						if (command is DataCommand)
 						{
-							await SendCommandAsync(CreateEmptyCommand<SetCreditCommand>());
-							creditCounter = bufferCreditSize;
-						}
-					}
-					else if (command is EndFileCommand)
-					{
-						try
-						{
-							// commit the file
-							var efid = (EndFileCommand)command;
-							newFile.CommitFile(efid.RecordCount, efid.UnitCount);
-
-							// send successful receive
-							await SendCommandAsync(CreateEmptyCommand<EndFilePositiveAnswerCommand>(c =>
+							var data = (DataCommand)command;
+							lastEoR = data.WriteToStream(newFile);
+							if (--creditCounter <= 0)
 							{
-								c.ChangeDirection = changeDirectionRequest;
-							}));
+								await SendCommandAsync(CreateEmptyCommand<SetCreditCommand>());
+								creditCounter = bufferCreditSize;
+							}
 						}
-						catch (OdetteFileServiceException e)
+						else if (command is EndFileCommand)
 						{
-							var cmd = version == OdetteVersion.Rev20 ?
-								(EndFileNegativeAnswerCommand)CreateEmptyCommand<EndFileNegativeAnswerCommandV2>() :
-								(EndFileNegativeAnswerCommand)CreateEmptyCommand<EndFileNegativeAnswerCommandV1>();
+							try
+							{
+								if (!lastEoR)
+									throw new OdetteFileServiceException(OdetteAnswerReason.InvalidByteCount, "Unexpected end of stream.");
 
-							cmd.AnswerReason = e.ReasonCode;
-							cmd.ReasonText = e.ReasonText;
+								// commit the file
+								m.WriteLine("File received. Commit the file in the file service.");
+								var efid = (EndFileCommand)command;
+								newFile.CommitFile(efid.RecordCount, efid.UnitCount);
 
-							await SendCommandAsync(cmd);
+								m.WriteLine("File received successful: {0:N0} bytes, {1:N0} records", newFile.TotalLength, newFile.RecordCount);
+
+								// send successful receive
+								await SendCommandAsync(CreateEmptyCommand<EndFilePositiveAnswerCommand>(c =>
+								{
+									c.ChangeDirection = changeDirectionRequest;
+								}));
+							}
+							catch (Exception e)
+							{
+								var cmd = version == OdetteVersion.Rev20 ?
+									(EndFileNegativeAnswerCommand)CreateEmptyCommand<EndFileNegativeAnswerCommandV2>() :
+									(EndFileNegativeAnswerCommand)CreateEmptyCommand<EndFileNegativeAnswerCommandV1>();
+
+								var e2 = e as OdetteFileServiceException;
+								if (e2 == null)
+								{
+									cmd.AnswerReason = OdetteAnswerReason.UnspecifiedReason;
+									cmd.ReasonText = e.Message;
+
+									m.WriteException(e);
+								}
+								else
+								{
+									cmd.AnswerReason = e2.ReasonCode;
+									cmd.ReasonText = e2.ReasonText;
+
+									m.WriteWarning(e2);
+								}
+
+								await SendCommandAsync(cmd);
+							}
+							break;
 						}
-						break;
+						else
+						{
+							m.SetType(LogMsgType.Error)
+								.WriteLine("Protocol voilation.");
+
+							throw ThrowProtocolVoilation(command);
+						}
 					}
-					else
-						throw ThrowProtocolVoilation(command);
 				}
 			}
 		} // proc ReceiveFileAsync
 
-		private async Task ReceiveEndEndResponseAsync(EndEndResponseCommand command)
+		private async Task ReceiveEndEndResponseAsync(IOdetteFileEndToEndDescription command)
 		{
-			// todo: do something
+			log.Info(command.ReasonCode != 0 ?
+				"Receive negative end to end: {0} - [{1}] {2}" :
+				"Receive positive end to end: {0}", command.Name.VirtualFileName, command.ReasonCode, command.ReasonText
+			);
 
+			LogFileServiceException("Update out file state.", () => fileService.UpdateOutFileState(command));
 			await SendCommandAsync(CreateEmptyCommand<ReadyToReceiveCommand>());
 		} // proc ReceiveEndEndResponseAsync
-
-		private async Task ReceiveNegativeEndResponseAsync(NegativeEndResponseCommandV2 command)
-		{
-			// todo: do something
-
-			await SendCommandAsync(CreateEmptyCommand<ReadyToReceiveCommand>());
-		} // proc ReceiveNegativeEndResponseAsync
 
 		private async Task<bool> ReceiveFilesAsync(bool changeDirectionRequest)
 		{
@@ -2581,11 +2822,15 @@ namespace TecWare.DE.Odette
 				else if (command is EndEndResponseCommand)
 					await ReceiveEndEndResponseAsync((EndEndResponseCommand)command);
 				else if (command is NegativeEndResponseCommandV2)
-					await ReceiveNegativeEndResponseAsync((NegativeEndResponseCommandV2)command);
+					await ReceiveEndEndResponseAsync((NegativeEndResponseCommandV2)command);
 				else if (command is ChangeDirectionCommand) // speaker mode
 					return true;
 				else if (command is EndSessionCommand) // end session normal
+				{
+					var es = (EndSessionCommand)command;
+					log.Info("Receive end session: [{0}] {1}", (int)es.ReasonCode, es.ReasonText);
 					return false;
+				}
 				else
 					throw ThrowProtocolVoilation(command);
 			}
@@ -2607,7 +2852,7 @@ namespace TecWare.DE.Odette
 				await ResponderSessionStartAsync();
 
 			// create the lists
-			var newOutFileList = ((IEnumerable<IOdetteFile>)(new IOdetteFile[0])).GetEnumerator(); //  fileService.GetOutFileList().GetEnumerator();
+			var newOutFileList = fileService.GetOutFiles().GetEnumerator();
 			var eerpInFileList = fileService.GetEndToEnd().GetEnumerator();
 
 			while (true)
@@ -2617,13 +2862,13 @@ namespace TecWare.DE.Odette
 					// file transfer
 					if (await SendFilesAsync(newOutFileList, eerpInFileList)) // order is important (first out files, than eerp)
 					{
-						// change direction
+						log.Info("Change direction to listener.");
 						await SendCommandAsync(CreateEmptyCommand<ChangeDirectionCommand>());
 						speaker = false;
 					}
 					else if (forceChangeDirection)
 					{
-						// change direction
+						log.Info("Change direction to listener.");
 						await SendCommandAsync(CreateEmptyCommand<ChangeDirectionCommand>());
 						speaker = false;
 
@@ -2636,6 +2881,7 @@ namespace TecWare.DE.Odette
 				{
 					if (await ReceiveFilesAsync(forceChangeDirection))
 					{
+						log.Info("Change direction to speaker.");
 						forceChangeDirection = false;
 						speaker = true;
 					}
@@ -2646,10 +2892,15 @@ namespace TecWare.DE.Odette
 
 			// end the session
 			if (speaker)
+			{
+				log.Info("Send end session.");
 				await EndSessionAsync(OdetteEndSessionReasonCode.None);
+			}
 		} // proc RunAsync
 
 		#endregion
+
+		public LoggerProxy Log => log;
 
 		// -- GetReasonText -------------------------------------------------------
 
@@ -2708,7 +2959,7 @@ namespace TecWare.DE.Odette
 				}
 				catch (Exception e)
 				{
-					owner.Log.Except("Abnormal termination.", e);
+					protocol.Log.Except("Abnormal termination.", e);
 				}
 			} // proc EndProtocolAsync
 		} // class ProtocolPool
@@ -2716,6 +2967,7 @@ namespace TecWare.DE.Odette
 		#endregion
 
 		private ProtocolPool threadProtocol;
+		private bool debugCommands = false;
 
 		public OdetteFileTransferProtocolItem(IServiceProvider sp, string name)
 			: base(sp, name)
@@ -2730,19 +2982,16 @@ namespace TecWare.DE.Odette
 			base.Dispose(disposing);
 		} // proc Dispose
 
-		public Task StartProtocolAsync(IOdetteFtpChannel channel,  bool initiator)
+		public Task StartProtocolAsync(IOdetteFtpChannel channel, bool initiator)
 			=> threadProtocol.StartProtocolAsync(channel, initiator);
 
 		internal OdetteFileService CreateFileService(string destinationId, string password)
 			=> new OdetteFileService(this, destinationId, password);
 
-		internal void DebugTrace(string message)
-		{
-			Log.Info(message);
-		} // proc DebugTrace
-
 		public string OdetteId => Config.GetAttribute("odetteId", String.Empty);
 		public string OdettePassword => Config.GetAttribute("odettePassword", String.Empty);
+
+		public bool IsDebugCommandsEnabled => debugCommands;
 	} // class OdetteFileTransferProtocolItem
 
 	#endregion
