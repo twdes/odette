@@ -5,8 +5,12 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using TecWare.DE.Server;
 using TecWare.DE.Stuff;
 
@@ -32,7 +36,7 @@ namespace TecWare.DE.Odette
 	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	[Flags]
-	internal enum OdetteCapabilities
+	public enum OdetteCapabilities
 	{
 		None = 0,
 		Send = 1,
@@ -206,16 +210,24 @@ namespace TecWare.DE.Odette
 	/// <summary></summary>
 	internal sealed class OdetteFtp
 	{
-		public readonly string[] chiperSuits = new string[] {
-			"None",
-			"3DES_EDE_CBC_3KEY RSA_PKCS1_15 SHA-1",
-			"AES_256_CBC RSA_PKCS1_15 SHA-1",
-			"3DES_EDE_CBC_3KEY RSA_PKCS1_15 SHA-256",
-			"AES_256_CBC RSA_PKCS1_15 SHA-256",
-			"3DES_EDE_CBC_3KEY RSA_PKCS1_15 SHA-512",
-			"AES_256_CBC RSA_PKCS1_15 SHA-512"
-		};
+		internal struct CipherSuit
+		{
+			public string Symetric;
+			public string Asymetric;
+			public string Hash;
+		} // class CipherSuit
 
+		public readonly CipherSuit[] cipherSuits = new CipherSuit[]
+		{
+			new CipherSuit() { Symetric = null, Asymetric = null, Hash = null },
+			new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA1" },
+      new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA1" },
+      new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA256" },
+      new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA256" },
+      new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" },
+      new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" }
+		};
+		
 		#region -- class OdetteCommand ----------------------------------------------------
 
 		///////////////////////////////////////////////////////////////////////////////
@@ -387,7 +399,7 @@ namespace TecWare.DE.Odette
 
 			protected void WriteUnsignedNumber(int offset, int length, int value)
 			{
-				for (var i = length; i >= 0; i--)
+				for (var i = length - 1; i >= 0; i--)
 				{
 					buffer[offset + i] = unchecked((byte)value);
 					value = value >> 8;
@@ -479,7 +491,7 @@ namespace TecWare.DE.Odette
 				if (!IsValid(out error))
 				{
 					if (outbound)
-						throw new ArgumentException(String.Format("Invalid command in out buffer ({0}).", GetType().Name));
+						throw new ArgumentException(String.Format("Invalid command in out buffer ({0}, error: {1}).", GetType().Name, error));
 					else
 						throw new OdetteException(OdetteEndSessionReasonCode.CommandContainedInvalidData, error);
 				}
@@ -808,16 +820,6 @@ namespace TecWare.DE.Odette
 			public abstract long FileSizeUnpacked { get; set; }
 
 			public sealed override char Signature => 'H';
-
-			// -- Static ------------------------------------------------------------
-
-			protected static long ConvertToBlocks(long value)
-			{
-				if ((value & 0x1FF) != 0)
-					return (value >> 10) + 1;
-				else
-					return value >> 10;
-			} // func ConvertToBlocks
 		} // class StartFileCommand
 
 		#endregion
@@ -827,8 +829,9 @@ namespace TecWare.DE.Odette
 		private sealed class StartFileCommandV1 : StartFileCommand
 		{
 			public StartFileCommandV1(byte[] transmissionBuffer)
-				: base(transmissionBuffer, 128)
+				: base(transmissionBuffer)
 			{
+				Length = 128;
 			} // ctor
 
 			public StartFileCommandV1(byte[] transmissionBuffer, int length)
@@ -850,8 +853,8 @@ namespace TecWare.DE.Odette
 
 			public override long FileSize
 			{
-				get { return ReadNumber(112, 7) << 10; }
-				set { WriteNumber(112, 7, ConvertToBlocks(value)); }
+				get { return ReadNumber(112, 7); }
+				set { WriteNumber(112, 7, value); }
 			} // prop FileSize
 
 			public override long RestartPosition
@@ -871,8 +874,9 @@ namespace TecWare.DE.Odette
 		private sealed class StartFileCommandV2 : StartFileCommand
 		{
 			public StartFileCommandV2(byte[] transmissionBuffer)
-				: base(transmissionBuffer, 165)
+				: base(transmissionBuffer)
 			{
+				Length = 165;
 			} // ctor
 
 			public StartFileCommandV2(byte[] transmissionBuffer, int length)
@@ -894,14 +898,14 @@ namespace TecWare.DE.Odette
 
 			public override long FileSize
 			{
-				get { return ReadNumber(112, 13) << 10; }
-				set { WriteNumber(112, 13, ConvertToBlocks(value)); }
+				get { return ReadNumber(112, 13); }
+				set { WriteNumber(112, 13, value); }
 			} // prop FileSize
 
 			public override long FileSizeUnpacked
 			{
-				get { return ReadNumber(125, 13) << 10; }
-				set { WriteNumber(125, 13, ConvertToBlocks(value)); }
+				get { return ReadNumber(125, 13) ; }
+				set { WriteNumber(125, 13, value); }
 			} // prop FileSizeOriginal
 
 			public override long RestartPosition
@@ -922,8 +926,8 @@ namespace TecWare.DE.Odette
 				set { WriteNumber(157, 2, value); }
 			} // prop CipherSuite
 
-			public bool Compressed { get { return ReadNumber(159, 1) != 0; } set { WriteNumber(159, 1, value ? 1 : 0); } }
-			public bool Enveloped { get { return ReadNumber(160, 1) != 0; } set { WriteNumber(160, 1, value ? 1 : 0); } }
+			public int Compressed { get { return ReadNumber(159, 1); } set { WriteNumber(159, 1, value); } }
+			public int Enveloped { get { return ReadNumber(160, 1); } set { WriteNumber(160, 1, value); } }
 			public bool EerpSigned { get { return ReadAscii(161, 1) == "Y"; } set { WriteAscii(161, 1, value ? "Y" : "N"); } }
 
 			public override string Description
@@ -1965,7 +1969,7 @@ namespace TecWare.DE.Odette
 		private OdetteFileService fileService = null; // current destination/file service after session start
 
 		private OdetteVersion version = OdetteVersion.Rev20;
-		private OdetteCapabilities capabilities = OdetteCapabilities.BufferCompression;
+		private OdetteCapabilities capabilities = OdetteCapabilities.None;
 		private int maximumDataExchangeBuffer = 99999;
 		private int bufferCreditSize = 999;
 
@@ -1978,6 +1982,7 @@ namespace TecWare.DE.Odette
 		{
 			this.item = item;
 			this.channel = channel;
+			this.capabilities = channel.InitialCapabilities;
 
 			this.log = LoggerProxy.Create(item.Log, channel.Name);
 			log.Info("Oftp session start.");
@@ -2289,16 +2294,14 @@ namespace TecWare.DE.Odette
 
 				// send a change direction
 				await SendCommandAsync(CreateEmptyCommand<SecurityChangeDirectionCommand>());
+				await HandleSecurityChallengeListener();
 
-				// get authentifcation command
-				var auth = await ReceiveCommandAsync<AuthentificationChallengeCommand>();
-				//var cms = new SignedCms();
+				// change direction
+				log.Info("Challange ok, change direction.");
+				await ReceiveCommandAsync<SecurityChangeDirectionCommand>();
+				await HandleSecurityChallengeSpeaker();
 
-				//// todo: Certificates?
-				//cms.Decode(auth.Challenge);
-				throw new NotImplementedException();
-
-				//log.Info("End authentification successful.");
+				log.Info("End authentification successful.");
 			}
 
 			log.Info("Start session successful.");
@@ -2339,6 +2342,15 @@ namespace TecWare.DE.Odette
 			if (ssid.Version != OdetteVersion.Rev13 && ssid.Version != OdetteVersion.Rev20)
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.ModeOrCapabilitiesIncompatible);
 
+			// if one is not restartart able, clear restart
+			CompareSessionStartFlag(ssid, OdetteCapabilities.Restart);
+			CompareSessionStartFlag(ssid, OdetteCapabilities.BufferCompression);
+			CompareSessionStartFlag(ssid, OdetteCapabilities.SpecialLogic);
+
+			// Check secure authentification
+			if (((ssid.Capabilities ^ capabilities) & OdetteCapabilities.SecureAuthentification) != 0)
+				throw await EndSessionAsync(OdetteEndSessionReasonCode.SecureAuthenticationRequirementsIncompatible);
+
 			version = ssid.Version;
 			bufferCreditSize = ssid.BufferCreditSize;
 			maximumDataExchangeBuffer = ssid.DataExchangeBuffer;
@@ -2366,16 +2378,114 @@ namespace TecWare.DE.Odette
 				log.Info("Start authentification as responder.");
 
 				await ReceiveCommandAsync<SecurityChangeDirectionCommand>();
+				await HandleSecurityChallengeSpeaker();
 
-				// create CMS challenge
+				// change direction
+				log.Info("Challange ok, change direction.");
+				await SendCommandAsync(CreateEmptyCommand<SecurityChangeDirectionCommand>());
+				await HandleSecurityChallengeListener();
 
-				throw new NotImplementedException();
-
-				//log.Info("End authentification successful.");
+				log.Info("End authentification successful.");
 			}
 
 			log.Info("Start session successful.");
 		} // proc ResponderSessionStartAsync
+
+		private void CompareSessionStartFlag(StartSessionCommand ssid, OdetteCapabilities flag)
+		{
+			if ((ssid.Capabilities & flag) != (capabilities & flag))
+				capabilities = capabilities & ~flag;
+		} // proc CompareSessionStartFlag
+
+		#endregion
+
+		#region -- Secure Authentification ------------------------------------------------
+
+		private async Task HandleSecurityChallengeSpeaker()
+		{
+			// create a random number
+			var randomNumber = CreateChallenge();
+
+			// encrypt with the public key of the partner
+			var encryptedChallenge = EncryptChallenge(randomNumber, item.FindCertificates(fileService.DestinationId, true).FirstOrDefault());
+			if (encryptedChallenge == null)
+				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "Challenge encryption failed.");
+
+			await SendCommandAsync(CreateEmptyCommand<AuthentificationChallengeCommand>(c => c.Challenge = encryptedChallenge));
+			var aurp = await ReceiveCommandAsync<AuthentificationResponseCommand>();
+
+			if (!Procs.CompareBytes(aurp.DecryptedChallenge, randomNumber))
+				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "Challenge is not equal.");
+		} // proc HandleSecurityChallengeSpeaker
+
+		private async Task HandleSecurityChallengeListener()
+		{
+			// certifcate is from destination (private key)
+			var certificate = item.FindCertificates(fileService.DestinationId, false).FirstOrDefault();
+			if (certificate == null || !certificate.HasPrivateKey || certificate.PrivateKey.KeyExchangeAlgorithm == null)
+				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "No or invalid private key, to encrypt the challenge.");
+			
+			// authentifcation command challenge
+			var auth = await ReceiveCommandAsync<AuthentificationChallengeCommand>();
+
+			// decrypt and send back
+			var decryptedChallenge = certificate == null ? null : DecryptChallenge(auth.Challenge, certificate);
+			await SendCommandAsync(CreateEmptyCommand<AuthentificationResponseCommand>(
+				c =>
+				{
+					if (decryptedChallenge == null || decryptedChallenge.Length != 20)
+						Array.Clear(c.Data, c.DecryptedChallengeOffset, c.DecryptedChallengeLength);
+					else
+						Array.Copy(decryptedChallenge, 0, c.Data, c.DecryptedChallengeOffset, c.DecryptedChallengeLength);
+				}
+			));
+		} // proc HandleSecurityChallengeListener
+
+		private byte[] CreateChallenge()
+		{
+			var data = new byte[20];
+			var r = new Random(Environment.TickCount);
+			r.NextBytes(data);
+			return data;
+		} // func CreateChallange
+
+		private byte[] EncryptChallenge(byte[] number, X509Certificate2 certifcate)
+		{
+			try
+			{
+				var cms = new EnvelopedCms(
+					new ContentInfo(Oid.FromOidValue("1.2.840.113549.1.7.1", OidGroup.All), number),
+					new AlgorithmIdentifier(Oid.FromOidValue("1.2.840.113549.3.7", OidGroup.All))
+				);
+
+				var cmsReceipt = new CmsRecipient(SubjectIdentifierType.IssuerAndSerialNumber, certifcate);
+				cms.Encrypt(cmsReceipt);
+
+				return cms.Encode();
+			}
+			catch (Exception e)
+			{
+				Log.Warn("Encrypt of challenge failed.", e);
+				return null;
+			}
+		} // func EncryptChallenge
+
+		private byte[] DecryptChallenge(byte[] challenge, X509Certificate2 certificate)
+		{
+			try
+			{
+				var cms = new EnvelopedCms();
+				cms.Decode(challenge);
+				cms.Decrypt(cms.RecipientInfos[0], new X509Certificate2Collection(certificate));
+
+				return cms.ContentInfo.Content;
+			}
+			catch (Exception e)
+			{
+				Log.Warn("Decrypt of challenge failed.", e);
+				return null;
+			}
+		} // func DecryptChallenge
 
 		private bool IsSecureAuthentification()
 			=> version == OdetteVersion.Rev20 && (capabilities & OdetteCapabilities.SecureAuthentification) != 0;
@@ -2384,19 +2494,24 @@ namespace TecWare.DE.Odette
 
 		#region -- SendFiles --------------------------------------------------------------
 
-		private static long RestartLength(OdetteFileFormat format, IOdetteFileReader outFile)
+		private long RestartLength(OdetteFileFormat format, IOdetteFileReader outFile)
 		{
-			switch (format)
+			if (outFile is IOdetteFilePosition && (capabilities & OdetteCapabilities.Restart) != 0)
 			{
-				case OdetteFileFormat.Fixed:
-				case OdetteFileFormat.Variable:
-					return outFile.RecordCount;
-				case OdetteFileFormat.Unstructured:
-				case OdetteFileFormat.Text:
-					return outFile.TotalLength >> 10;
-				default:
-					return 0L;
+				switch (format)
+				{
+					case OdetteFileFormat.Fixed:
+					case OdetteFileFormat.Variable:
+						return outFile.RecordCount;
+					case OdetteFileFormat.Unstructured:
+					case OdetteFileFormat.Text:
+						return outFile.TotalLength >> 10;
+					default:
+						return 0L;
+				}
 			}
+			else
+				return 0L;
 		} // func RestartLength
 
 		private StartFileCommand CreateStartFileCommand(IOdetteFileReader outFile, out long restartLength)
@@ -2426,8 +2541,8 @@ namespace TecWare.DE.Odette
 				sfid2.FileSizeUnpacked = fileDescription?.FileSizeUnpacked ?? sfid.FileSize;
 				sfid2.SecurityLevel = OdetteSecurityLevels.None;
 				sfid2.CipherSuite = 0;
-				sfid2.Compressed = false;
-				sfid2.Enveloped = false;
+				sfid2.Compressed = 0;
+				sfid2.Enveloped = 0;
 				sfid2.EerpSigned = false;
 				sfid2.Description = fileDescription?.Description ?? String.Empty;
 			}
@@ -2665,8 +2780,13 @@ namespace TecWare.DE.Odette
 					{
 						if (cmd2.CipherSuite != 0)
 							throw new OdetteFileServiceException(OdetteAnswerReason.CipherSuiteNotSupported);
-						if (cmd2.Compressed)
+						if (cmd2.SecurityLevel != OdetteSecurityLevels.None)
+							throw new OdetteFileServiceException(OdetteAnswerReason.EncryptedFileNotAllowed);
+						if (cmd2.Compressed != 0)
 							throw new OdetteFileServiceException(OdetteAnswerReason.CompressionNotAllowed);
+						if(cmd2.Enveloped != 0)
+							throw new OdetteFileServiceException(OdetteAnswerReason.SignedFileNotAllowed);
+						
 						if (cmd2.EerpSigned)
 							throw new OdetteFileServiceException(OdetteAnswerReason.SignedFileNotAllowed, "Signed eerp not allowed.");
 					}
@@ -2714,7 +2834,7 @@ namespace TecWare.DE.Odette
 					{
 						// check for restart
 						var filePosition = newFile as IOdetteFilePosition;
-						if (filePosition == null)
+						if (filePosition == null || (capabilities & OdetteCapabilities.Restart) == 0)
 							sfpa.RestartPosition = 0;
 						else
 							sfpa.RestartPosition = filePosition.Seek(startFileCommand.RestartPosition);
@@ -2724,6 +2844,7 @@ namespace TecWare.DE.Odette
 					else
 						sfpa.RestartPosition = 0;
 
+					m.WriteLine("Receive data.");
 					await SendCommandAsync(sfpa);
 
 					// receive data
@@ -2923,6 +3044,9 @@ namespace TecWare.DE.Odette
 	/// <summary></summary>
 	public class OdetteFileTransferProtocolItem : DEConfigLogItem
 	{
+		private static readonly XNamespace OdetteNamespace = "http://tecware-gmbh.de/dev/des/2014/odette";
+		private static readonly XName xnCertificates = OdetteNamespace + "certificates";
+
 		#region -- class ProtocolPool -----------------------------------------------------
 
 		///////////////////////////////////////////////////////////////////////////////
@@ -2981,6 +3105,32 @@ namespace TecWare.DE.Odette
 				Procs.FreeAndNil(ref threadProtocol);
 			base.Dispose(disposing);
 		} // proc Dispose
+
+		/// <summary>Finds the certificates for the destination.</summary>
+		/// <param name="destinationId"></param>
+		/// <param name="partnerCertificate"><c>true</c> the public key of the partner, <c>false</c> the private key used for this destination.</param>
+		/// <returns></returns>
+		public IEnumerable<X509Certificate2> FindCertificates(string destinationId, bool partnerCertificate)
+		{
+			var collected = new List<X509Certificate2>();
+			foreach (var x in Config.Elements(xnCertificates))
+			{
+				if (String.Compare(x.GetAttribute("destinationId", String.Empty), destinationId, StringComparison.OrdinalIgnoreCase) == 0)
+				{
+					try
+					{
+						foreach (var cert in ProcsDE.FindCertificate(x.GetAttribute(partnerCertificate ? "partner" : "my", String.Empty)))
+							if (cert != null)
+								collected.Add(cert);
+					}
+					catch (Exception e)
+					{
+						Log.Warn(e);
+					}
+				}
+			}
+			return collected;
+		} // func FindCertificateFromDestination
 
 		public Task StartProtocolAsync(IOdetteFtpChannel channel, bool initiator)
 			=> threadProtocol.StartProtocolAsync(channel, initiator);

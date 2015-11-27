@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette.Network
 {
@@ -17,14 +19,22 @@ namespace TecWare.DE.Odette.Network
 		private readonly Stream stream;
 		private readonly string name;
 		private readonly string userData;
+		private readonly OdetteCapabilities initialCapabilities = OdetteCapabilities.None;
 
 		#region -- Ctor/Dtor --------------------------------------------------------------
 
-		public OdetteNetworkStream(Stream stream, string name, string userData)
+		public OdetteNetworkStream(Stream stream, string name, XElement xConfig)
 		{
 			this.stream = stream;
 			this.name = name;
-			this.userData = userData;
+			this.userData = xConfig.GetAttribute("userData", String.Empty);
+
+			if (xConfig.GetAttribute("allowBufferCompression", false))
+				initialCapabilities |= OdetteCapabilities.BufferCompression;
+			if (xConfig.GetAttribute("allowRestart", false))
+				initialCapabilities |= OdetteCapabilities.Restart;
+			if (xConfig.GetAttribute("allowSecureAuthentification", false))
+				initialCapabilities |= OdetteCapabilities.SecureAuthentification;
 		} // ctor
 
 		public void Dispose()
@@ -93,6 +103,7 @@ namespace TecWare.DE.Odette.Network
 
 		public string Name => name;
 		public string UserData => userData;
+		public OdetteCapabilities InitialCapabilities => initialCapabilities;
 	} // class OdetteNetworkStream
 
 	#endregion

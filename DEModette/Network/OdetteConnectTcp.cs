@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TecWare.DE.Server;
 using TecWare.DE.Server.Stuff;
+using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette.Network
 {
@@ -28,7 +30,11 @@ namespace TecWare.DE.Odette.Network
 		protected override void OnEndReadConfiguration(IDEConfigLoading config)
 		{
 			base.OnEndReadConfiguration(config);
-		}
+						
+			//var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
+			//var serverTcp = this.GetService<IServerTcp>(true);
+			//Task.Run(() => protocol.StartProtocolAsync(new OdetteNetworkStream(serverTcp.Connect(new IPEndPoint(IPAddress.Parse("10.0.200.2"), 3305)), "test", ""), true));
+    }
 
 		//bool ICronJobExecute.CanRunParallelTo(ICronJobExecute other)
 		//{

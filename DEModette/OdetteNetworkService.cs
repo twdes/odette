@@ -30,6 +30,8 @@ namespace TecWare.DE.Odette
 		string Name { get; }
 		/// <summary>UserData, that will sent to the communication partner on connect.</summary>
 		string UserData { get; }
+		/// <summary>Returns the initial capabilities.</summary>
+		OdetteCapabilities InitialCapabilities { get; }
 	} // class IOdetteFtpChannel
 
 	#endregion

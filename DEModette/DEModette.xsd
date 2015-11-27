@@ -61,6 +61,24 @@
 		</xs:complexType>
 	</xs:element>
 
+	<xs:attributeGroup name="oftpAttribute">
+		<xs:attribute name="allowBufferCompression" type="xs:boolean" use="optional" default="false">
+			<xs:annotation>
+				<xs:documentation>Activate the simple buffer compression (rle) algorithm.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="allowRestart" type="xs:boolean" use="optional" default="false">
+			<xs:annotation>
+				<xs:documentation>Activate the restart algorithm.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="allowSecureAuthentification" type="xs:boolean" use="optional" default="false">
+			<xs:annotation>
+				<xs:documentation>Activate the secure authentification algorithm.</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:attributeGroup>
+	
 	<xs:element name="listenerTcp">
 		<xs:annotation>
 			<xs:documentation>Defines a listnener in bound traffic.</xs:documentation>
@@ -91,11 +109,12 @@
 							</xs:restriction>
 						</xs:simpleType>
 					</xs:attribute>
-					<xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
+					<xs:attribute name="ssl" type="PathType" use="optional">
 						<xs:annotation>
-							<xs:documentation>The port for SSL connections is 3306.</xs:documentation>
+							<xs:documentation>The server certificate for the listener (the default port is 3306).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
+					<xs:attributeGroup ref="o:oftpAttribute" />
 				</xs:extension>
 			</xs:complexContent>
 		</xs:complexType>
@@ -121,11 +140,12 @@
 							<xs:documentation>Defines the port.</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
-					<xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
+					<xs:attribute name="ssl" type="PathType" use="optional" default="false">
 						<xs:annotation>
-							<xs:documentation>Use a ssl connection (use 3306 for the port).</xs:documentation>
+							<xs:documentation>The client certificate for the connection (the default port is 3306).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
+					<xs:attributeGroup ref="o:oftpAttribute" />
 					<xs:attribute name="bound" type="CronBound" use="optional">
 						<xs:annotation>
 							<xs:documentation>Defines the schedule for the conect to the remote end-point.</xs:documentation>
@@ -147,6 +167,29 @@
 			<xs:complexContent>
 				<xs:extension base="ConfigLogItemType">
 					<xs:sequence minOccurs="0" maxOccurs="unbounded">
+						<xs:element name="certficates" minOccurs="0" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Defines a pair of certificates for a destination. They are used for encrypted, authentification, ...</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:attribute name="destinationId" type="xs:string" use="required">
+									<xs:annotation>
+										<xs:documentation>Oscar id of the destination.</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="my" type="PathType" use="required">
+									<xs:annotation>
+										<xs:documentation>Private key of my self.</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="partner" type="PathType" use="required">
+									<xs:annotation>
+										<xs:documentation>Public key of the communication partner.</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:complexType>
+						</xs:element>
+						
 						<xs:element ref="o:ofileservice" minOccurs="0" maxOccurs="unbounded" />
 						<xs:element ref="o:listenerTcp" minOccurs="0" maxOccurs="unbounded" />
 						<xs:element ref="o:connectTcp" minOccurs="0" maxOccurs="unbounded" />

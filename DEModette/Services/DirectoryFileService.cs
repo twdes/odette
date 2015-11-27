@@ -85,7 +85,11 @@ namespace TecWare.DE.Odette.Services
 					maximumRecordSize = xDescription.GetAttribute("maximumRecordSize", 0);
 					fileSize = xDescription.GetAttribute("fileSize", -1L);
 					if (fileSize < 0)
-						fileSize = fileInfo.Length / 1024;
+					{
+						fileSize = fileInfo.Length / 1024; // 1ks
+						if ((fileInfo.Length & 0x3FF) != 0)
+							fileSize++;
+					}
 					fileSizeUnpacked = xDescription.GetAttribute("fileSizeUnpacked", fileSize);
 					description = xDescription.Value ?? String.Empty;
 
@@ -342,6 +346,9 @@ namespace TecWare.DE.Odette.Services
 				if (!readOnly)
 					throw new InvalidOperationException();
 
+				// close the stream
+				Procs.FreeAndNil(ref stream);
+
 				// write answer
 				var xSend = EnforceSendElement();
 
@@ -359,6 +366,9 @@ namespace TecWare.DE.Odette.Services
 			{
 				if (!readOnly)
 					throw new InvalidOperationException();
+
+				// close the stream
+				Procs.FreeAndNil(ref stream);
 
 				// clear answer state to successful
 				var xSend = EnforceSendElement();
@@ -929,7 +939,7 @@ namespace TecWare.DE.Odette.Services
 		/// <returns></returns>
 		internal FileInfo CreateOutFileName(IOdetteFile file, OdetteOutFileState state)
 		{
-			return new FileInfo(Path.Combine(directoryIn.FullName, GetFileName(file) + GetOutFileExtention(state)));
+			return new FileInfo(Path.Combine(directoryOut.FullName, GetFileName(file) + GetOutFileExtention(state)));
 		} // func CreateOutFileName
 
 		private static void ChangeInFileState(FileInfo fileInfo, OdetteInFileState newState)
