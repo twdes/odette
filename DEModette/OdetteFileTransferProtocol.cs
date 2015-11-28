@@ -346,7 +346,7 @@ namespace TecWare.DE.Odette
 			protected bool IsValidFixed(int offset, params string[] args)
 			{
 				if (args == null || args.Length == 0)
-					throw new ArgumentException("args"); // todo:
+					throw new ArgumentNullException("args");
 
 				var result = ReadAscii(offset, args[0].Length);
 				var index = Array.IndexOf(args, result);
@@ -391,7 +391,7 @@ namespace TecWare.DE.Odette
 					buffer[currentIndex--] = unchecked((byte)('0' + r));
 				}
 				if (value != 0)
-					throw new ArgumentException("value to large"); // todo:
+					throw new OverflowException(String.Format("Value {0} is longer than {1} digits.", value, length));
 
 				while (currentIndex >= offset)
 					buffer[currentIndex--] = (byte)'0';
@@ -688,7 +688,7 @@ namespace TecWare.DE.Odette
 							caps |= OdetteCapabilities.Send;
 							break;
 						default:
-							throw new Exception("protocol error"); // todo:
+							throw new OdetteAbortException(OdetteEndSessionReasonCode.CommandContainedInvalidData, "SSIDSR must be R,S or B.");
 					}
 
 					if (ReadAscii(41, 1) == "Y") // SSIDCMPR
@@ -712,7 +712,7 @@ namespace TecWare.DE.Odette
 					else if ((value & OdetteCapabilities.Receive) != 0)
 						WriteAscii(40, 1, "R");
 					else
-						throw new ArgumentException("send|recv"); // todo:
+						throw new OdetteAbortException(OdetteEndSessionReasonCode.CommandContainedInvalidData, "Send, Receive or Both must be set in SSIDSR.");
 
 					WriteAscii(41, 1, (value & OdetteCapabilities.BufferCompression) != 0 ? "Y" : "N"); // SSIDCMPR
 					WriteAscii(42, 1, (value & OdetteCapabilities.Restart) != 0 ? "Y" : "N"); // SSIDREST
@@ -3067,7 +3067,6 @@ namespace TecWare.DE.Odette
 				var protocol = new OdetteFtp(owner, channel);
 				//protocols.Add(protocol);
 
-				// todo: idle mode is missing
 				return Factory.StartNew(() => protocol.RunAsync(initiator))
 					.ContinueWith(t => EndProtocolAsync(t.Result.Wait, protocol));
 			} // proc StartProtocolAsync

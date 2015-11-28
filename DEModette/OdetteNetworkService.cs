@@ -6,6 +6,20 @@ using System.Threading.Tasks;
 
 namespace TecWare.DE.Odette
 {
+	#region -- class OdetteNetworkException ---------------------------------------------
+
+	///////////////////////////////////////////////////////////////////////////////
+	/// <summary></summary>
+	public class OdetteNetworkException : Exception
+	{
+		public OdetteNetworkException(string message)
+			: base(message)
+		{
+		} // ctor
+  } // class OdetteNetworkException
+
+	#endregion
+
 	#region -- interface IOdetteFtpChannel ----------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////

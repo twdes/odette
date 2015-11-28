@@ -109,7 +109,7 @@
 							</xs:restriction>
 						</xs:simpleType>
 					</xs:attribute>
-					<xs:attribute name="ssl" type="PathType" use="optional">
+					<xs:attribute name="ssl" type="CertificateType" use="optional">
 						<xs:annotation>
 							<xs:documentation>The server certificate for the listener (the default port is 3306).</xs:documentation>
 						</xs:annotation>
@@ -140,7 +140,7 @@
 							<xs:documentation>Defines the port.</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
-					<xs:attribute name="ssl" type="PathType" use="optional" default="false">
+					<xs:attribute name="ssl" type="CertificateType" use="optional" default="false">
 						<xs:annotation>
 							<xs:documentation>The client certificate for the connection (the default port is 3306).</xs:documentation>
 						</xs:annotation>
@@ -177,12 +177,12 @@
 										<xs:documentation>Oscar id of the destination.</xs:documentation>
 									</xs:annotation>
 								</xs:attribute>
-								<xs:attribute name="my" type="PathType" use="required">
+								<xs:attribute name="my" type="CertificateType" use="required">
 									<xs:annotation>
 										<xs:documentation>Private key of my self.</xs:documentation>
 									</xs:annotation>
 								</xs:attribute>
-								<xs:attribute name="partner" type="PathType" use="required">
+								<xs:attribute name="partner" type="CertificateType" use="required">
 									<xs:annotation>
 										<xs:documentation>Public key of the communication partner.</xs:documentation>
 									</xs:annotation>

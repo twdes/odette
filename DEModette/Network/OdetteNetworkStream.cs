@@ -59,7 +59,7 @@ namespace TecWare.DE.Odette.Network
 				var r = await stream.ReadAsync(buffer, ofs, length - ofs);
 				ofs += r;
 				if (r <= 0)
-					throw new Exception("eof"); // todo:
+					throw new OdetteNetworkException("Unexpected end of stream.");
 			} while (ofs < length);
 		} // func ReadAsync
 
@@ -71,12 +71,12 @@ namespace TecWare.DE.Odette.Network
 
 			// check signature
 			if (header[0] != StreamTransmissionHeader)
-				throw new Exception("protocol error"); // todo:
+				throw new OdetteNetworkException(String.Format("Stream Transmission header is wrong (expected: {0}, found: {1}).", StreamTransmissionHeader, header[0]));
 
 			// read length of buffer
 			var length = ((int)header[1] << 16 | (int)header[2] << 8 | (int)header[3]) - 4;
 			if (length < 1 || length > buffer.Length)
-				throw new Exception("protocol error"); // todo: 
+				throw new OdetteNetworkException(String.Format("Buffer length is invalid (expected: <={0}, found {1})", buffer.Length, length));
 
 			// read data
 			await ReadAsync(buffer, length);
