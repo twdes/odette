@@ -129,7 +129,7 @@
 		</xs:annotation>
 		<xs:complexType>
 			<xs:complexContent>
-				<xs:extension base="ConfigItemType">
+				<xs:extension base="CronJobItemType">
 					<xs:attribute name="addr" type="xs:string" use="required">
 						<xs:annotation>
 							<xs:documentation>Remote address or dns to connect to.</xs:documentation>
@@ -140,17 +140,12 @@
 							<xs:documentation>Defines the port.</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
-					<xs:attribute name="ssl" type="CertificateType" use="optional" default="false">
+					<xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
 						<xs:annotation>
-							<xs:documentation>The client certificate for the connection (the default port is 3306).</xs:documentation>
+							<xs:documentation>Enforce a encrypted connection (the default port is 3306).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
 					<xs:attributeGroup ref="o:oftpAttribute" />
-					<xs:attribute name="bound" type="CronBound" use="optional">
-						<xs:annotation>
-							<xs:documentation>Defines the schedule for the conect to the remote end-point.</xs:documentation>
-						</xs:annotation>
-					</xs:attribute>
 				</xs:extension>
 			</xs:complexContent>
 		</xs:complexType>

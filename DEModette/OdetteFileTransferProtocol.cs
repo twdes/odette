@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -221,13 +220,13 @@ namespace TecWare.DE.Odette
 		{
 			new CipherSuit() { Symetric = null, Asymetric = null, Hash = null },
 			new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA1" },
-      new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA1" },
-      new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA256" },
-      new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA256" },
-      new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" },
-      new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" }
+			new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA1" },
+			new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA256" },
+			new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA256" },
+			new CipherSuit() { Symetric = "3DES_EDE_CBC_3KEY", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" },
+			new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" }
 		};
-		
+
 		#region -- class OdetteCommand ----------------------------------------------------
 
 		///////////////////////////////////////////////////////////////////////////////
@@ -904,7 +903,7 @@ namespace TecWare.DE.Odette
 
 			public override long FileSizeUnpacked
 			{
-				get { return ReadNumber(125, 13) ; }
+				get { return ReadNumber(125, 13); }
 				set { WriteNumber(125, 13, value); }
 			} // prop FileSizeOriginal
 
@@ -1991,7 +1990,7 @@ namespace TecWare.DE.Odette
 		public async Task DisconnectAsync()
 		{
 			log.Info("Oftp session disconnect.");
-			
+
 			// disconnect the channel
 			await channel.DisconnectAsync();
 			channel.Dispose();
@@ -2424,7 +2423,7 @@ namespace TecWare.DE.Odette
 			var certificate = item.FindCertificates(fileService.DestinationId, false).FirstOrDefault();
 			if (certificate == null || !certificate.HasPrivateKey || certificate.PrivateKey.KeyExchangeAlgorithm == null)
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "No or invalid private key, to encrypt the challenge.");
-			
+
 			// authentifcation command challenge
 			var auth = await ReceiveCommandAsync<AuthentificationChallengeCommand>();
 
@@ -2784,9 +2783,9 @@ namespace TecWare.DE.Odette
 							throw new OdetteFileServiceException(OdetteAnswerReason.EncryptedFileNotAllowed);
 						if (cmd2.Compressed != 0)
 							throw new OdetteFileServiceException(OdetteAnswerReason.CompressionNotAllowed);
-						if(cmd2.Enveloped != 0)
+						if (cmd2.Enveloped != 0)
 							throw new OdetteFileServiceException(OdetteAnswerReason.SignedFileNotAllowed);
-						
+
 						if (cmd2.EerpSigned)
 							throw new OdetteFileServiceException(OdetteAnswerReason.SignedFileNotAllowed, "Signed eerp not allowed.");
 					}
@@ -3021,7 +3020,10 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
+		/// <summary></summary>
 		public LoggerProxy Log => log;
+		/// <summary></summary>
+		public IOdetteFtpChannel Channel => channel;
 
 		// -- GetReasonText -------------------------------------------------------
 
@@ -3054,7 +3056,6 @@ namespace TecWare.DE.Odette
 		private sealed class ProtocolPool : DEThreadLoop
 		{
 			private readonly OdetteFileTransferProtocolItem owner;
-			//private List<OdetteFileTransferProtocol> protocols = new List<OdetteFileTransferProtocol>();
 
 			public ProtocolPool(OdetteFileTransferProtocolItem owner)
 				: base(owner, "Protocol")
@@ -3065,7 +3066,7 @@ namespace TecWare.DE.Odette
 			public Task StartProtocolAsync(IOdetteFtpChannel channel, bool initiator)
 			{
 				var protocol = new OdetteFtp(owner, channel);
-				//protocols.Add(protocol);
+				owner.AddProtocol(protocol);
 
 				return Factory.StartNew(() => protocol.RunAsync(initiator))
 					.ContinueWith(t => EndProtocolAsync(t.Result.Wait, protocol));
@@ -3084,6 +3085,10 @@ namespace TecWare.DE.Odette
 				{
 					protocol.Log.Except("Abnormal termination.", e);
 				}
+				finally
+				{
+					owner.RemoveProtocol(protocol);
+				}
 			} // proc EndProtocolAsync
 		} // class ProtocolPool
 
@@ -3092,18 +3097,48 @@ namespace TecWare.DE.Odette
 		private ProtocolPool threadProtocol;
 		private bool debugCommands = false;
 
+		private DEList<OdetteFtp> activeProtocols;
+
+		#region -- Ctor/Dtor --------------------------------------------------------------
+
 		public OdetteFileTransferProtocolItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
 			threadProtocol = new ProtocolPool(this);
+
+			this.activeProtocols = new DEList<OdetteFtp>(this, "tw_protocols", "Protocols");
 		} // ctor
 
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
 				Procs.FreeAndNil(ref threadProtocol);
+
 			base.Dispose(disposing);
 		} // proc Dispose
+
+		#endregion
+
+		#region -- Protocol List ----------------------------------------------------------
+
+		private void AddProtocol(OdetteFtp oftp)
+		{
+			activeProtocols.Add(oftp);
+		} // proc RemoveProtocol
+
+		private void RemoveProtocol(OdetteFtp oftp)
+		{
+			activeProtocols.Remove(oftp);
+		} // proc RemoveProtocol
+
+		public bool IsActiveProtocol(string channelName)
+		{
+			return activeProtocols.FindIndex(o => o.Channel.Name == channelName) >= 0;
+		} // func IsActiveProtocol
+
+		#endregion
+
+		#region -- FindCertificates -------------------------------------------------------
 
 		/// <summary>Finds the certificates for the destination.</summary>
 		/// <param name="destinationId"></param>
@@ -3131,11 +3166,17 @@ namespace TecWare.DE.Odette
 			return collected;
 		} // func FindCertificateFromDestination
 
+		#endregion
+
+		#region -- StartProtocolAsync, CreateFileService ----------------------------------
+
 		public Task StartProtocolAsync(IOdetteFtpChannel channel, bool initiator)
 			=> threadProtocol.StartProtocolAsync(channel, initiator);
 
 		internal OdetteFileService CreateFileService(string destinationId, string password)
 			=> new OdetteFileService(this, destinationId, password);
+
+		#endregion
 
 		public string OdetteId => Config.GetAttribute("odetteId", String.Empty);
 		public string OdettePassword => Config.GetAttribute("odettePassword", String.Empty);

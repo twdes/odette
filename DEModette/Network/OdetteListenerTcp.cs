@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using TecWare.DE.Server;
 using TecWare.DE.Stuff;
@@ -51,7 +47,7 @@ namespace TecWare.DE.Odette.Network
 				serverCertificate = null;
 			else
 			{
-				Log.Info("Try to locate ssl: {0}", useSsl);
+				Log.Info("Try to locate certificate: {0}", useSsl);
 				serverCertificate = ProcsDE.FindCertificate(useSsl).FirstOrDefault(); // todo: select server certificate
 				if (serverCertificate == null)
 					throw new ArgumentException("Server certificate not found.");
