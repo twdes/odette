@@ -90,6 +90,7 @@ namespace TecWare.DE.Odette.Services
 						if ((fileInfo.Length & 0x3FF) != 0)
 							fileSize++;
 					}
+
 					fileSizeUnpacked = xDescription.GetAttribute("fileSizeUnpacked", fileSize);
 					description = xDescription.Value ?? String.Empty;
 
@@ -738,10 +739,10 @@ namespace TecWare.DE.Odette.Services
 				var xCommit = fileItem.Extensions.Root.Element("commit");
 				if (xCommit == null)
 					fileItem.Extensions.Root.Add(xCommit = new XElement("commit"));
-
-				xCommit.Add(new XAttribute("reasonCode", description.ReasonCode));
-				xCommit.Add(new XAttribute("reasonText", description.ReasonText));
-				xCommit.Add(new XAttribute("userData", description.UserData));
+				
+				xCommit.SetAttributeValue("reasonCode", description.ReasonCode));
+				xCommit.SetAttributeValue("reasonText", description.ReasonText));
+				xCommit.SetAttributeValue("userData", description.UserData));
 
 				fileItem.SaveExtensions();
 

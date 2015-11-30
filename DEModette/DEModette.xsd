@@ -162,7 +162,7 @@
 			<xs:complexContent>
 				<xs:extension base="ConfigLogItemType">
 					<xs:sequence minOccurs="0" maxOccurs="unbounded">
-						<xs:element name="certficates" minOccurs="0" maxOccurs="unbounded">
+						<xs:element name="certificates" minOccurs="0" maxOccurs="unbounded">
 							<xs:annotation>
 								<xs:documentation>Defines a pair of certificates for a destination. They are used for encrypted, authentification, ...</xs:documentation>
 							</xs:annotation>

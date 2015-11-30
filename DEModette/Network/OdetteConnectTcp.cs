@@ -18,6 +18,8 @@ namespace TecWare.DE.Odette.Network
 		private string targetHost = null;
 		private string channelName = null;
 
+		private bool inConnectionPhase = false;
+
 		public OdetteConnectTcpItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
@@ -36,46 +38,59 @@ namespace TecWare.DE.Odette.Network
 
 		protected override void OnRunJob(CancellationToken cancellation)
 		{
-			if (endPoint == null)
-				return;
-
+			if (inConnectionPhase)
+				Log.Info("Currently connecting...");
+			else
+				Task.Run(OnRunJobAsync);
 		} // proc OnRunJob
 
 		private async Task OnRunJobAsync()
 		{
-			var timeoutSource = new CancellationTokenSource(30000);
-
-			// resolve end point
-			var serverTcp = this.GetService<IServerTcp>(true);
-			if (endPoint == null)
-				endPoint = await serverTcp.ResolveEndpointAsync(targetHost, targetPort, timeoutSource.Token);
-
-			// register the connection
-			if (endPoint != null)
+			inConnectionPhase = true;
+			try
 			{
-				var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
+				var timeoutSource = new CancellationTokenSource(30000);
 
-				// check if the protocol is running
-				if (protocol.IsActiveProtocol(ChannelName))
-					Log.Info("Protocol is already active.");
-				else // create the connection
-					try
-					{
-						var stream = await serverTcp.CreateConnectionAsync(endPoint, timeoutSource.Token);
+				// resolve end point
+				var serverTcp = this.GetService<IServerTcp>(true);
+				if (endPoint == null)
+					endPoint = await serverTcp.ResolveEndpointAsync(targetHost, targetPort, timeoutSource.Token);
 
-						if (useSsl)
+				// register the connection
+				if (endPoint != null)
+				{
+					var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
+
+					// check if the protocol is running
+					if (protocol.IsActiveProtocol(ChannelName))
+						Log.Info("Protocol is already active.");
+					else // create the connection
+						try
 						{
-							var ssl = new SslStream(stream, false);
-							await ssl.AuthenticateAsClientAsync(targetHost);
-							stream = ssl;
-						}
+							var stream = await serverTcp.CreateConnectionAsync(endPoint, timeoutSource.Token);
 
-						await protocol.StartProtocolAsync(new OdetteNetworkStream(stream, channelName, Config), true);
-					}
-					catch (Exception e)
-					{
-						Log.Except("Connection failed.", e);
-					}
+							if (useSsl)
+							{
+								var ssl = new SslStream(stream, false);
+								await ssl.AuthenticateAsClientAsync(targetHost);
+								stream = ssl;
+							}
+
+							await protocol.StartProtocolAsync(new OdetteNetworkStream(stream, channelName, Config), true);
+						}
+						catch (Exception e)
+						{
+							Log.Except("Connection failed.", e);
+						}
+				}
+			}
+			catch (Exception e)
+			{
+				Log.Except(e);
+			}
+			finally
+			{
+				inConnectionPhase = false;
 			}
 		} // proc OnRunJobAsync
 

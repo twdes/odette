@@ -15,10 +15,10 @@
 	<serverTcp />
 
 	<o:oftp name="oftp" displayname="Odette File Protocol" odetteId="DES" odettePassword="TEST">
-		<o:certficates destinationId="TEST" my="store://CN=OFTP2Test" partner="Certs\mendelson.key1.cer"/>
+		<o:certificates destinationId="TEST" my="store://CN=OFTP2Test" partner="Certs\mendelson.key1.cer"/>
 		
-		<o:listenerTcp name="listenDefault" port="3306" address="0.0.0.0" ssl="store://CN=OFTP2Test" />
-		<!--<o:connectTcp name="connectTest" addr="10.0.200.2" port="3306" ssl="store://CN=OFTP2Test" />-->
+		<!--<o:listenerTcp name="listenDefault" port="3305" address="0.0.0.0" allowSecureAuthentification="true" />-->		<!--  ssl="store://CN=OFTP2Test"-->
+		<o:connectTcp name="connectTest" addr="ZitroneW7" port="3305" allowSecureAuthentification="true" bound="1,*" />
 
 		<o:ofileservice name="test" destination="TEST" passwordHash="0x02008D9C570FCA2C13144F38731AB6FC7359A2B2B4145F84CCCDEE32862E3520AE3D4E1EBF7A15998828AE08F2EDC1F479A8743903F200C0AD909C846F7CFA01C10D6522E3F2"
 										in="D:\Temp\OFTP\In"

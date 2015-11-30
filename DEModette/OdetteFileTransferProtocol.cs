@@ -2017,7 +2017,7 @@ namespace TecWare.DE.Odette
 			else
 			{
 				var commandDescription = command.ToString();
-				log.Warn("Protocol vilation detected. Unexpected command: {0}", commandDescription);
+				log.Warn("Protocol violation detected. Unexpected command: {0}", commandDescription);
 				return new OdetteException(OdetteEndSessionReasonCode.ProtocolViolation, String.Format("Unexpected command: {0}", commandDescription));
 			}
 		} // func ThrowProtocolVoilation
@@ -2588,7 +2588,7 @@ namespace TecWare.DE.Odette
 			{
 				//  send command buffer
 				var currentCredit = bufferCreditSize;
-				while (!endOfStream && currentCredit++ > 0)
+				while (!endOfStream && currentCredit-- > 0)
 					await SendCommandAsync(CreateEmptyCommand<DataCommand>(c => endOfStream = c.FillFromStream(outFile, allowCompression)));
 
 				// wait for credit
@@ -3095,7 +3095,7 @@ namespace TecWare.DE.Odette
 		#endregion
 
 		private ProtocolPool threadProtocol;
-		private bool debugCommands = false;
+		private bool debugCommands = true;
 
 		private DEList<OdetteFtp> activeProtocols;
 

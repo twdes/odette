@@ -42,7 +42,7 @@ namespace TecWare.DE.Odette.Network
 			// is there the tcp listener
 			serverTcp = this.GetService<IServerTcp>(true);
 
-			var useSsl = Config.GetAttribute("ssl", String.Empty);
+			var useSsl = config.ConfigNew.GetAttribute("ssl", String.Empty);
 			if (String.IsNullOrEmpty(useSsl))
 				serverCertificate = null;
 			else
@@ -65,7 +65,8 @@ namespace TecWare.DE.Odette.Network
 			var endPoint = new IPEndPoint(IPAddress.Parse(listenerAddress), listenerPort);
 
 			// start the listener
-			serverTcp.RegisterListener(endPoint,
+			Procs.FreeAndNil(ref currentListener);
+			currentListener = serverTcp.RegisterListener(endPoint,
 				serverCertificate != null ?
 					new Action<Stream>(CreateSslHandler) :
 					new Action<Stream>(CreateHandler)
@@ -89,11 +90,18 @@ namespace TecWare.DE.Odette.Network
 
 		private async void CreateSslHandler(Stream socket, X509Certificate2 certificate)
 		{
-			var ssl = new SslStream(socket, false, null, null);
-			await ssl.AuthenticateAsServerAsync(serverCertificate, true, SslProtocols.Tls, false); // no revocation
+			try
+			{
+				var ssl = new SslStream(socket, false, null, null);
+				await ssl.AuthenticateAsServerAsync(serverCertificate, true, SslProtocols.Tls, false); // no revocation
 
-			var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
-			await protocol.StartProtocolAsync(new OdetteNetworkStream(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
+				var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
+				await protocol.StartProtocolAsync(new OdetteNetworkStream(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
+			}
+			catch (Exception e)
+			{
+				Log.Except("Protocol initialization failed.", e);
+			}
 		} // func CreateSslHandler
 
 		#endregion
