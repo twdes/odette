@@ -740,9 +740,9 @@ namespace TecWare.DE.Odette.Services
 				if (xCommit == null)
 					fileItem.Extensions.Root.Add(xCommit = new XElement("commit"));
 				
-				xCommit.SetAttributeValue("reasonCode", description.ReasonCode));
-				xCommit.SetAttributeValue("reasonText", description.ReasonText));
-				xCommit.SetAttributeValue("userData", description.UserData));
+				xCommit.SetAttributeValue("reasonCode", description.ReasonCode);
+				xCommit.SetAttributeValue("reasonText", description.ReasonText);
+				xCommit.SetAttributeValue("userData", description.UserData);
 
 				fileItem.SaveExtensions();
 
