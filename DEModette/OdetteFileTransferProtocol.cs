@@ -3095,7 +3095,7 @@ namespace TecWare.DE.Odette
 		#endregion
 
 		private ProtocolPool threadProtocol;
-		private bool debugCommands = true;
+		private bool debugCommands = false;
 
 		private DEList<OdetteFtp> activeProtocols;
 

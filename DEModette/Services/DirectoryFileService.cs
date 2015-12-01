@@ -194,6 +194,19 @@ namespace TecWare.DE.Odette.Services
 				xExtentions.Save(GetExtendedFile());
 			} // proc SaveExtensions
 
+			public long GetFileSizeSafe()
+			{
+				try
+				{
+					fileInfo.Refresh();
+					return fileInfo.Length;
+				}
+				catch
+				{
+					return 0;
+				}
+			} // func GetFileSizeSafe
+
 			public FileInfo FileInfo => fileInfo;
 			public XDocument Extensions => xExtentions;
 
@@ -391,7 +404,7 @@ namespace TecWare.DE.Odette.Services
 
 			public IOdetteFile Name => fileItem;
 
-			public long TotalLength => stream.Length;
+			public long TotalLength => stream?.Length ?? FileItem.GetFileSizeSafe();
 			public virtual long RecordCount => 0;
 
 			string IOdetteFileReader.UserData => fileItem.SendUserData;
