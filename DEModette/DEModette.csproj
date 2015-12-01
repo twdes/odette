@@ -75,6 +75,7 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="packages.config" />
+    <None Include="Readme.md" />
     <None Include="Services\DirectoryFileService.md" />
   </ItemGroup>
   <ItemGroup>
