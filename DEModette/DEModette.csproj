@@ -74,8 +74,10 @@
     <EmbeddedResource Include="DEModette.xsd">
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <None Include="..\Readme.md">
+      <Link>Readme.md</Link>
+    </None>
     <None Include="packages.config" />
-    <None Include="Readme.md" />
     <None Include="Services\DirectoryFileService.md" />
   </ItemGroup>
   <ItemGroup>
