@@ -359,14 +359,14 @@ namespace TecWare.DE.Odette
 			private byte GetLetter(char c)
 			{
 				var b = (int)c;
-				if (b == (int)'/' || b == (int)'-' || b == (int)'.' || b == (int)'&' || b == (int)'(' || b == (int)')' ||
+				if (b == (int)' ' || b == (int)'/' || b == (int)'-' || b == (int)'.' || b == (int)'&' || b == (int)'(' || b == (int)')' ||
 						b >= 0x30 && b <= 0x39 || // 0..9
 						b >= 0x41 && b <= 0x5A)// A..Z
 					return unchecked((byte)b);
 				else if (b >= 0x61 && b <= 0x7A) // a..z
 					return unchecked((byte)(b - 0x20));
 				else
-					throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, "File name contains a invalid char.");
+					throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, "Ascii field contains a invalid char.");
 			} // func GetLetter
 
 			protected void WriteAscii(int offset, int count, string data)
