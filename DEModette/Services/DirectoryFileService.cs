@@ -659,12 +659,9 @@ namespace TecWare.DE.Odette.Services
 				log.Info("Session finished...");
 			} // proc Dispose
 
-			private string FormatFileName(IOdetteFile file, string userData)
-				=> file.Originator + "/" + file.VirtualFileName + "[userData=" + userData + "]";
-
 			public IOdetteFileWriter CreateInFile(IOdetteFile file, string userData)
 			{
-				var incomingFile = String.Format("In coming file {0} ", FormatFileName(file, userData));
+				var incomingFile = String.Format("In coming file {0} ", OdetteFileMutable.FormatFileName(file, userData));
 				if (!service.IsInFileAllowed(file))
 				{
 					log.Info(incomingFile + "ignored");
@@ -705,7 +702,7 @@ namespace TecWare.DE.Odette.Services
 					{
 						var fileItem = new FileItem(fi, file, false);
 						var e2e = new FileEndToEnd(fileItem);
-						fileItem.Log(log, String.Format("Sent {1} end to end for: {0}", FormatFileName(file, e2e.UserData), e2e.ReasonCode == 0 ? "positive" : "negative"));
+						fileItem.Log(log, String.Format("Sent {1} end to end for: {0}", OdetteFileMutable.FormatFileName(file, e2e.UserData), e2e.ReasonCode == 0 ? "positive" : "negative"));
 						yield return e2e;
 					}
 				}
@@ -724,7 +721,7 @@ namespace TecWare.DE.Odette.Services
 						yield return new Func<IOdetteFileReader>(() =>
 						{
 							var fileItem = new FileItem(fi, file, false);
-							fileItem.Log(log, String.Format("Sent file to destination: {0}", FormatFileName(file, fileItem.SendUserData)));
+							fileItem.Log(log, String.Format("Sent file to destination: {0}", OdetteFileMutable.FormatFileName(file, fileItem.SendUserData)));
 
 							// file for sent
 							return fileItem.OpenRead();
@@ -747,7 +744,7 @@ namespace TecWare.DE.Odette.Services
 
 				// update file information
 				var fileItem = new FileItem(fi, description.Name, false);
-				fileItem.Log(log, String.Format("Update file commit: {0} with [{1}] {2}", FormatFileName(description.Name, description.UserData), description.ReasonCode, description.ReasonText));
+				fileItem.Log(log, String.Format("Update file commit: {0} with [{1}] {2}", OdetteFileMutable.FormatFileName(description.Name, description.UserData), description.ReasonCode, description.ReasonText));
 
 				var xCommit = fileItem.Extensions.Root.Element("commit");
 				if (xCommit == null)
@@ -770,6 +767,8 @@ namespace TecWare.DE.Odette.Services
 		} // class FileServiceSession
 
 		#endregion
+
+		internal const string FileSelectorRegEx = @"([A-Z0-9]{1,25})#([A-Za-z0-9\/\-\.\&\(\)]{1,26})#(\d{18})\.?.*";
 
 		private const string FileStampFormat = "yyyyMMddHHmmssffff";
 
@@ -895,7 +894,7 @@ namespace TecWare.DE.Odette.Services
 				throw new ArgumentNullException("name");
 
 			DateTime fileStamp;
-			var m = Regex.Match(name, @"(\w+)#(\w+)#(\d{18})\.?.*");
+			var m = Regex.Match(name, FileSelectorRegEx);
 			if (m.Success && DateTime.TryParseExact(m.Groups[3].Value, FileStampFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out fileStamp))
 			{
 				return new OdetteFileMutable(m.Groups[2].Value, fileStamp, m.Groups[1].Value);

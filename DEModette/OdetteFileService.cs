@@ -94,9 +94,16 @@ namespace TecWare.DE.Odette
 			this.originator = originator;
 		} // ctor
 
+		public override string ToString()
+			=> FormatFileName(this, "");
+
 		public string VirtualFileName => virtualFileName;
 		public DateTime FileStamp => fileStamp;
 		public string Originator => originator;
+
+
+		public static string FormatFileName(IOdetteFile file, string userData)
+			=> file.Originator + "/" + file.VirtualFileName + "[userData=" + userData + "]";
 	} // class OdetteFileMutable
 
 	#endregion
@@ -368,7 +375,8 @@ namespace TecWare.DE.Odette
 				if (s.UpdateOutFileState(description))
 					return;
 			}
-			throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, "E2E failed.", false);
+			
+			throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, String.Format("E2E failed for {0}.", OdetteFileMutable.FormatFileName(description.Name, description.UserData)), false);
 		} // proc UpdateOutFileState
 
 		/// <summary>File service destination id</summary>
