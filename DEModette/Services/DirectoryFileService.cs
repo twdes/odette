@@ -705,6 +705,8 @@ namespace TecWare.DE.Odette.Services
 						fileItem.Log(log, String.Format("Sent {1} end to end for: {0}", OdetteFileMutable.FormatFileName(file, e2e.UserData), e2e.ReasonCode == 0 ? "positive" : "negative"));
 						yield return e2e;
 					}
+					else
+						log.Warn("GetEndToEnd: Can not parse file name '{0}'...", fi.Name);
 				}
 			} // func GetEndToEnd
 
