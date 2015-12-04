@@ -1083,7 +1083,7 @@ namespace TecWare.DE.Odette
 					var v = ReadUtf8(4);
 					return String.IsNullOrEmpty(v) ? GetReasonText(AnswerReason) : v;
 				}
-				set { WriteUtf8(4, value); }
+				set { Length = WriteUtf8(4, value); }
 			} // prop ReasonText
 		} // class StartFileNegativeAnswerCommandV2
 
