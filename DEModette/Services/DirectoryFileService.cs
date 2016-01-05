@@ -791,6 +791,8 @@ namespace TecWare.DE.Odette.Services
 
 		protected override void OnBeginReadConfiguration(IDEConfigLoading config)
 		{
+			base.OnBeginReadConfiguration(config);
+
 			// check the id's
 			if (String.IsNullOrEmpty(config.ConfigNew.GetAttribute("destination", String.Empty)))
 				throw new ArgumentNullException("@destination id is missing.");
@@ -798,8 +800,6 @@ namespace TecWare.DE.Odette.Services
 			// check the directories
 			ValidateDirectory(config.ConfigNew, "in", true);
 			ValidateDirectory(config.ConfigNew, "out", true);
-
-			base.OnBeginReadConfiguration(config);
 		} // OnBeginReadConfiguration
 
 		protected override void OnEndReadConfiguration(IDEConfigLoading config)
