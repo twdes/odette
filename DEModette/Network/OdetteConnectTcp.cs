@@ -31,7 +31,7 @@ namespace TecWare.DE.Odette.Network
 
 			this.useSsl = Config.GetAttribute("ssl", useSsl);
 			this.targetHost = Config.GetAttribute("addr", String.Empty);
-			this.targetPort = Config.GetAttribute("port", useSsl ? targetPort : 3306);
+			this.targetPort = Config.GetAttribute("port", useSsl ? 3305 : 6619);
 			this.endPoint = null;
 			this.channelName = null;
 		} // proc OnEndReadConfiguration
@@ -73,6 +73,9 @@ namespace TecWare.DE.Odette.Network
 							{
 								var ssl = new SslStream(stream, false);
 								await ssl.AuthenticateAsClientAsync(targetHost);
+
+								var cert = ssl.RemoteCertificate;
+								Log.Info($"Ssl active: auth={ssl.IsAuthenticated}, encrypt={ssl.IsEncrypted}, signed={ssl.IsSigned}\nissuer={cert.Issuer}\nsubject={cert.Subject}");
 								stream = ssl;
 							}
 

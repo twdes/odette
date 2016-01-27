@@ -3109,6 +3109,9 @@ namespace TecWare.DE.Odette
 			threadProtocol = new ProtocolPool(this);
 
 			this.activeProtocols = new DEList<OdetteFtp>(this, "tw_protocols", "Protocols");
+
+			PublishItem(new DEConfigItemPublicAction("debugOn") { DisplayName = "Debug(on)" });
+			PublishItem(new DEConfigItemPublicAction("debugOff") { DisplayName = "Debug(off)" });
 		} // ctor
 
 		protected override void Dispose(bool disposing)
@@ -3179,6 +3182,21 @@ namespace TecWare.DE.Odette
 			=> new OdetteFileService(this, destinationId, password);
 
 		#endregion
+
+		[DEConfigHttpAction("debugOn", IsSafeCall = true, SecurityToken = SecuritySys)]
+		private XElement SetDebugCommandsOn()
+			=> SetDebugCommands(true);
+
+		[DEConfigHttpAction("debugOff", IsSafeCall = true, SecurityToken = SecuritySys)]
+		private XElement SetDebugCommandsOff()
+			=> SetDebugCommands(false);
+
+		[DEConfigHttpAction("debug", IsSafeCall = true, SecurityToken = SecuritySys)]
+		private XElement SetDebugCommands(bool on = false)
+		{
+			debugCommands = on;
+			return new XElement("return", new XAttribute("debug", debugCommands));
+		} // func SetDebugCommands
 
 		public string OdetteId => Config.GetAttribute("odetteId", String.Empty);
 		public string OdettePassword => Config.GetAttribute("odettePassword", String.Empty);

@@ -111,7 +111,7 @@
 					</xs:attribute>
 					<xs:attribute name="ssl" type="CertificateType" use="optional">
 						<xs:annotation>
-							<xs:documentation>The server certificate for the listener (the default port is 3306).</xs:documentation>
+							<xs:documentation>The server certificate for the listener (the default port is 6619).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
 					<xs:attributeGroup ref="o:oftpAttribute" />
@@ -142,7 +142,7 @@
 					</xs:attribute>
 					<xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
 						<xs:annotation>
-							<xs:documentation>Enforce a encrypted connection (the default port is 3306).</xs:documentation>
+							<xs:documentation>Enforce a encrypted connection (the default port is 6619).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
 					<xs:attributeGroup ref="o:oftpAttribute" />

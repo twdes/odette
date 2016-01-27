@@ -59,7 +59,7 @@ namespace TecWare.DE.Odette.Network
 			base.OnEndReadConfiguration(config);
 
 			var listenerAddress = Config.GetAttribute("address", "0.0.0.0");
-			var listenerPort = Config.GetAttribute("port", serverCertificate == null ? 3305 : 3306);
+			var listenerPort = Config.GetAttribute("port", serverCertificate == null ? 3305 : 6619);
 
 			Log.Info("Register Listener (port={0}, addr={1}, ssl={2})", listenerPort, listenerAddress, serverCertificate == null ? "<plain>" : serverCertificate.Subject);
 			var endPoint = new IPEndPoint(IPAddress.Parse(listenerAddress), listenerPort);
