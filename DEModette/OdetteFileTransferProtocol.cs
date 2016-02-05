@@ -1531,7 +1531,17 @@ namespace TecWare.DE.Odette
 				set { WriteNumber(1, 2, (int)value); }
 			} // prop ReasonCode
 
-			public abstract string ReasonText { get; set; }
+			public virtual string ReasonText
+			{
+				get
+				{
+					string returnText = null;
+					if (Length > 4)
+						returnText = ReadUtf8(3);
+					return String.IsNullOrEmpty(returnText) ? GetReasonText(ReasonCode) : returnText;
+				}
+				set { }
+			} // prop ReasonText
 
 			public sealed override char Signature => 'F';
 		} // class EndSessionCommand
@@ -1568,7 +1578,7 @@ namespace TecWare.DE.Odette
 
 			public override string ReasonText
 			{
-				get { return GetReasonText(ReasonCode); }
+				get { return base.ReasonText; }
 				set { }
 			} // prop ReasonText
 		} // class EndSessionCommandV1
@@ -1606,13 +1616,7 @@ namespace TecWare.DE.Odette
 
 			public override string ReasonText
 			{
-				get
-				{
-					var v = ReadUtf8(3);
-					if (String.IsNullOrEmpty(v))
-						v = GetReasonText(ReasonCode);
-					return v;
-				}
+				get { return base.ReasonText; }
 				set
 				{
 					var endAt = WriteUtf8(3, value);
