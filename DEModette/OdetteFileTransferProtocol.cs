@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -3205,6 +3206,14 @@ namespace TecWare.DE.Odette
 		public string OdetteId => Config.GetAttribute("odetteId", String.Empty);
 		public string OdettePassword => Config.GetAttribute("odettePassword", String.Empty);
 
+
+		[
+		PropertyName("tw_oftp_debug"),
+		DisplayName("Debug Commands"),
+		Description("Should the system log the in and outgoing oftp packets."),
+		Category("OFTP"),
+		Format("{0:XiB}")
+		]
 		public bool IsDebugCommandsEnabled => debugCommands;
 	} // class OdetteFileTransferProtocolItem
 
