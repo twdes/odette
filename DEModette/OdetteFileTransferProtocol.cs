@@ -3200,6 +3200,7 @@ namespace TecWare.DE.Odette
 		private XElement SetDebugCommands(bool on = false)
 		{
 			debugCommands = on;
+			OnPropertyChanged(nameof(IsDebugCommandsEnabled));
 			return new XElement("return", new XAttribute("debug", debugCommands));
 		} // func SetDebugCommands
 
