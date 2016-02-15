@@ -400,11 +400,11 @@ namespace TecWare.DE.Odette.Services
 
 			protected FileStream Stream => stream;
 			protected bool IsReadOnly => readOnly;
-			protected FileItem FileItem => FileItem;
+			protected FileItem FileItem => fileItem;
 
 			public IOdetteFile Name => fileItem;
 
-			public long TotalLength => stream?.Length ?? FileItem.GetFileSizeSafe();
+			public long TotalLength => stream?.Length ?? fileItem.GetFileSizeSafe();
 			public virtual long RecordCount => 0;
 
 			string IOdetteFileReader.UserData => fileItem.SendUserData;
