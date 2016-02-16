@@ -15,10 +15,15 @@ namespace TecWare.DE.Odette.Network
 	/// <summary></summary>
 	internal sealed class OdetteListenerTcpItem : DEConfigItem
 	{
+		private const SslProtocols defaultSslProtocols = SslProtocols.Default | SslProtocols.Tls11 | SslProtocols.Tls12;
+
 		private IServerTcp serverTcp;
 
 		private IListenerTcp currentListener = null;
 		private X509Certificate2 serverCertificate = null;
+		private bool skipInvalidCertificate = false;
+		private bool clientCertificateRequired = true;
+		private SslProtocols sslProtocols = defaultSslProtocols;
 
 		#region -- Ctor/Dtor --------------------------------------------------------------
 
@@ -60,6 +65,9 @@ namespace TecWare.DE.Odette.Network
 
 			var listenerAddress = Config.GetAttribute("address", "0.0.0.0");
 			var listenerPort = Config.GetAttribute("port", serverCertificate == null ? 3305 : 6619);
+			skipInvalidCertificate = Config.GetAttribute("skipInvalidCertificate", false);
+			clientCertificateRequired = Config.GetAttribute("clientCertificateRequired", true);
+			sslProtocols = (SslProtocols)Config.GetAttribute("sslProtocols", (int)defaultSslProtocols);
 
 			Log.Info("Register Listener (port={0}, addr={1}, ssl={2})", listenerPort, listenerAddress, serverCertificate == null ? "<plain>" : serverCertificate.Subject);
 			var endPoint = new IPEndPoint(IPAddress.Parse(listenerAddress), listenerPort);
@@ -90,10 +98,12 @@ namespace TecWare.DE.Odette.Network
 
 		private async void CreateSslHandler(Stream socket, X509Certificate2 certificate)
 		{
+			SslStream ssl = null;
 			try
 			{
-				var ssl = new SslStream(socket, false, null, null);
-				await ssl.AuthenticateAsServerAsync(serverCertificate, true, SslProtocols.Tls, false); // no revocation
+				ssl = new SslStream(socket, false, SslRemoteCertificateValidateCallback, null);
+				
+				await ssl.AuthenticateAsServerAsync(serverCertificate, clientCertificateRequired, sslProtocols, false); // no revocation
 
 				var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
 				await protocol.StartProtocolAsync(new OdetteNetworkStream(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
@@ -101,8 +111,55 @@ namespace TecWare.DE.Odette.Network
 			catch (Exception e)
 			{
 				Log.Except("Protocol initialization failed.", e);
+				ssl?.Dispose();
 			}
 		} // func CreateSslHandler
+
+		//private X509Certificate SslLocalCertificateSelector(object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers)
+		//{
+		//	return null;
+		//} // func SslLocalCertificateSelector
+
+		private bool SslRemoteCertificateValidateCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+		{
+			if (sslPolicyErrors == SslPolicyErrors.None)
+				return true;
+
+			using (var m = Log.CreateScope(skipInvalidCertificate ? LogMsgType.Warning : LogMsgType.Error))
+			{
+				m.WriteLine("Remote certification validation failed ({0}).", sslPolicyErrors);
+				m.WriteLine();
+				m.WriteLine("Remote Certificate:");
+				if (certificate != null)
+				{
+					m.WriteLine("  Subject: {0}", certificate.Subject);
+					m.WriteLine("  CertHash: {0}", certificate.GetCertHashString());
+					m.WriteLine("  Expiration: {0}", certificate.GetExpirationDateString());
+					m.WriteLine("  Serial: {0}", certificate.GetSerialNumberString());
+				}
+				else
+				{
+					m.WriteLine("  <null>");
+					// no chance to skip
+					return false;
+				}
+
+				m.WriteLine("Chain:");
+
+				var i = 0;
+				foreach (var c in chain.ChainElements)
+				{
+					m.Write("  - {0}", c.Certificate?.Subject);
+					if (i < chain.ChainStatus.Length)
+						m.WriteLine(" --> {0}, {1}", chain.ChainStatus[i].Status, chain.ChainStatus[i].StatusInformation);
+					else
+						m.WriteLine();
+					i++;
+				}
+			}
+
+			return skipInvalidCertificate;
+		} // func SslRemoteCertificateValidateCallback
 
 		#endregion
 	} // class OdetteListenerTcpItem

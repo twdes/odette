@@ -114,6 +114,21 @@
 							<xs:documentation>The server certificate for the listener (the default port is 6619).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
+					<xs:attribute name="skipInvalidCertificate" type="xs:boolean" use="optional" default="false">
+						<xs:annotation>
+							<xs:documentation>This will accept all remotecertificates without validation (default: false).</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="clientCertificateRequired" type="xs:boolean" use="optional" default="true">
+						<xs:annotation>
+							<xs:documentation>This value specifies whether the client must supply a certificate for authentication (default: true).</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="sslProtocols" type="xs:int" use="optional" default="4080">
+						<xs:annotation>
+							<xs:documentation>See also .net documention SslProtocols.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
 					<xs:attributeGroup ref="o:oftpAttribute" />
 				</xs:extension>
 			</xs:complexContent>
