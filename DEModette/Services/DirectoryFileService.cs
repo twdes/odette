@@ -881,8 +881,9 @@ namespace TecWare.DE.Odette.Services
 		{
 			try
 			{
-				
-				CallMember(nameof(OnSessionStart));
+				var m = this[nameof(OnSessionStart)];
+				if (m != null && Lua.RtInvokeable(m))
+					CallMember(nameof(OnSessionStart));
 			}
 			catch (Exception e)
 			{
@@ -894,7 +895,9 @@ namespace TecWare.DE.Odette.Services
 		{
 			try
 			{
-				CallMember(nameof(OnSessionClosed));
+				var m = this[nameof(OnSessionClosed)];
+				if (m != null && Lua.RtInvokeable(m))
+					CallMember(nameof(OnSessionClosed));
 			}
 			catch (Exception e)
 			{
