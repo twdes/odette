@@ -2701,7 +2701,7 @@ namespace TecWare.DE.Odette
 					{
 						c.VirtualFileName = f.Name.VirtualFileName;
 						c.Destination = fileService.DestinationId;
-						c.Originator = f.Name.Originator;
+						c.Originator = item.OdetteId; // f.Name.Originator;
 						c.FileStamp = f.Name.FileStamp;
 						c.UserData = f.UserData;
 					};
@@ -2731,7 +2731,7 @@ namespace TecWare.DE.Odette
 					{
 						c.VirtualFileName = f.Name.VirtualFileName;
 						c.Destination = fileService.DestinationId;
-						c.Originator = f.Name.Originator;
+						c.Originator = item.OdetteId; // f.Name.Originator;
 						c.FileStamp = f.Name.FileStamp;
 						c.Creator = item.OdetteId;
 						c.ReasonCode = f.ReasonCode;
