@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Neo.IronLua;
 using TecWare.DE.Server;
 using TecWare.DE.Server.Configuration;
 using TecWare.DE.Stuff;
@@ -24,6 +25,8 @@ namespace TecWare.DE.Odette.Services
 		/// <summary></summary>
 		private sealed class FileItem : IOdetteFileDescription
 		{
+			private readonly WeakReference<DirectoryFileServiceItem> notifyTarget;
+
 			private readonly FileInfo fileInfo;
 
 			private readonly string virtualFileName;
@@ -39,10 +42,11 @@ namespace TecWare.DE.Odette.Services
 			private readonly XDocument xExtentions;
 			private readonly XElement xSendInfo;
 
-			public FileItem(FileInfo fileInfo, IOdetteFile file, bool createInfo)
+			public FileItem(DirectoryFileServiceItem notifyTarget, FileInfo fileInfo, IOdetteFile file, bool createInfo)
 			{
 				var fileDescription = file as IOdetteFileDescription;
 
+				this.notifyTarget = new WeakReference<DirectoryFileServiceItem>(notifyTarget);
 				this.fileInfo = fileInfo;
 
 				this.virtualFileName = file.VirtualFileName;
@@ -207,6 +211,20 @@ namespace TecWare.DE.Odette.Services
 				}
 			} // func GetFileSizeSafe
 
+			internal void NotifyEndToEndReceived()
+			{
+				DirectoryFileServiceItem nt;
+				if (notifyTarget.TryGetTarget(out nt))
+					nt.OnEndToEndReceived(this);
+			} // proc NotifyEndToEndReceived
+
+			internal void NotifyFileReceived()
+			{
+				DirectoryFileServiceItem nt;
+				if (notifyTarget.TryGetTarget(out nt))
+					nt.OnFileReceived(this);
+			} // proc NotifyFileReceived
+
 			public FileInfo FileInfo => fileInfo;
 			public XDocument Extensions => xExtentions;
 
@@ -243,6 +261,7 @@ namespace TecWare.DE.Odette.Services
 			public void Commit()
 			{
 				ChangeInFileState(item.FileInfo, OdetteInFileState.Finished);
+				item.NotifyEndToEndReceived();
 			} // proc Commit
 
 			public IOdetteFile Name => item;
@@ -345,6 +364,9 @@ namespace TecWare.DE.Odette.Services
 
 				// rename file to show that it is received
 				ChangeInFileState(fileItem.FileInfo, OdetteInFileState.Received);
+
+				// notify that the file is received
+				fileItem.NotifyFileReceived();
 			} // proc CommitFile
 
 			private XElement EnforceSendElement()
@@ -652,10 +674,12 @@ namespace TecWare.DE.Odette.Services
 				this.log = LoggerProxy.Create(service.Log, sessionId.ToString());
 
 				log.Info("Session started...");
+				service.OnSessionStart();
 			} // ctor
 
 			public void Dispose()
 			{
+				service.OnSessionClosed();
 				log.Info("Session finished...");
 			} // proc Dispose
 
@@ -677,7 +701,7 @@ namespace TecWare.DE.Odette.Services
 					throw new OdetteFileServiceException(OdetteAnswerReason.DuplicateFile, "File already exists.", false);
 
 				// open the file to write
-				var fileItem = new FileItem(fi, file, true);
+				var fileItem = new FileItem(service, fi, file, true);
 				fileItem.Log(log, incomingFile + "accepted");
 				try
 				{
@@ -700,7 +724,7 @@ namespace TecWare.DE.Odette.Services
 					var file = TrySplitFileName(fi.Name);
 					if (file != null)
 					{
-						var fileItem = new FileItem(fi, file, false);
+						var fileItem = new FileItem(service, fi, file, false);
 						var e2e = new FileEndToEnd(fileItem);
 						fileItem.Log(log, String.Format("Sent {1} end to end for: {0}", OdetteFileMutable.FormatFileName(file, e2e.UserData), e2e.ReasonCode == 0 ? "positive" : "negative"));
 						yield return e2e;
@@ -722,7 +746,7 @@ namespace TecWare.DE.Odette.Services
 					if (file != null)
 						yield return new Func<IOdetteFileReader>(() =>
 						{
-							var fileItem = new FileItem(fi, file, false);
+							var fileItem = new FileItem(service, fi, file, false);
 							fileItem.Log(log, String.Format("Sent file to destination: {0}", OdetteFileMutable.FormatFileName(file, fileItem.SendUserData)));
 
 							// file for sent
@@ -745,7 +769,7 @@ namespace TecWare.DE.Odette.Services
 				ChangeOutFileState(fi, OdetteOutFileState.ReceivedEndToEnd);
 
 				// update file information
-				var fileItem = new FileItem(fi, description.Name, false);
+				var fileItem = new FileItem(service, fi, description.Name, false);
 				fileItem.Log(log, String.Format("Update file commit: {0} with [{1}] {2}", OdetteFileMutable.FormatFileName(description.Name, description.UserData), description.ReasonCode, description.ReasonText));
 
 				var xCommit = fileItem.Extensions.Root.Element("commit");
@@ -848,6 +872,62 @@ namespace TecWare.DE.Odette.Services
 			else
 				return null;
 		} // func CreateFileService
+
+		#endregion
+
+		#region -- Script Notify ----------------------------------------------------------
+
+		private void OnSessionStart()
+		{
+			try
+			{
+				
+				CallMember(nameof(OnSessionStart));
+			}
+			catch (Exception e)
+			{
+				Log.Except(e);
+			}
+			} // proc OnSessionStart
+
+		private void OnSessionClosed()
+		{
+			try
+			{
+				CallMember(nameof(OnSessionClosed));
+			}
+			catch (Exception e)
+			{
+				Log.Except(e);
+			}
+		} // proc OnSessionStart
+
+		private void OnFileReceived(FileItem fileItem)
+		{
+			CallFileItemNotify("OnFileReceived", fileItem);
+		} // proc OnFileReceived
+
+		private void OnEndToEndReceived(FileItem fileItem)
+		{
+			CallFileItemNotify("OnEndToEndReceived", fileItem);
+		} // proc OnEndToEndReceived
+
+		private void CallFileItemNotify(string methodName, FileItem fileItem)
+		{
+			var m = this[methodName];
+			if (m != null && Lua.RtInvokeable(m))
+			{
+				try
+					{
+					CallMember(methodName, fileItem, fileItem.FileInfo);
+					Log.Info("{0} successful.", methodName);
+				}
+				catch (Exception e)
+				{
+					Log.Except(String.Format("{0} failed.", methodName), e);
+				}
+			}
+		} // proc CallFileItemNotify
 
 		#endregion
 
