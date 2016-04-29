@@ -980,7 +980,7 @@ namespace TecWare.DE.Odette.Services
 
 			DateTime fileStamp;
 			var m = Regex.Match(name, FileSelectorRegEx);
-			if (m.Success && DateTime.TryParseExact(m.Groups[3].Value, FileStampFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out fileStamp))
+			if (m.Success && DateTime.TryParseExact(m.Groups[3].Value, FileStampFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out fileStamp))
 			{
 				return new OdetteFileMutable(m.Groups[2].Value, fileStamp, m.Groups[1].Value);
 			}

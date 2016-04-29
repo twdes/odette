@@ -850,7 +850,7 @@ namespace TecWare.DE.Odette
 			public override DateTime FileStamp
 			{
 				get { return DateTime.ParseExact(ReadAscii(36, 12), "yyMMddHHmmss", CultureInfo.InvariantCulture); }
-				set { WriteAscii(36, 12, value.ToUniversalTime().ToString("yyMMddHHmmss", CultureInfo.InvariantCulture)); }
+				set { WriteAscii(36, 12, value.ToString("yyMMddHHmmss", CultureInfo.InvariantCulture)); }
 			} // prop Stamp
 
 			public override long FileSize
@@ -895,7 +895,7 @@ namespace TecWare.DE.Odette
 			public override DateTime FileStamp
 			{
 				get { return DateTime.ParseExact(ReadAscii(30, 18), "yyyyMMddHHmmssffff", CultureInfo.InvariantCulture); }
-				set { WriteAscii(30, 18, value.ToUniversalTime().ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture)); }
+				set { WriteAscii(30, 18, value.ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture)); }
 			} // prop Stamp
 
 			public override long FileSize
@@ -1713,7 +1713,7 @@ namespace TecWare.DE.Odette
 			public override DateTime FileStamp
 			{
 				get { return DateTime.ParseExact(ReadAscii(36, 12), "yyMMddHHmmss", CultureInfo.InvariantCulture); }
-				set { WriteAscii(36, 12, value.ToUniversalTime().ToString("yyMMddHHmmss", CultureInfo.InvariantCulture)); }
+				set { WriteAscii(36, 12, value.ToString("yyMMddHHmmss", CultureInfo.InvariantCulture)); }
 			} // prop FileStamp
 
 			public override int ReasonCode => 0;
@@ -1743,7 +1743,7 @@ namespace TecWare.DE.Odette
 			public override DateTime FileStamp
 			{
 				get { return DateTime.ParseExact(ReadAscii(30, 18), "yyyyMMddHHmmssffff", CultureInfo.InvariantCulture); }
-				set { WriteAscii(30, 18, value.ToUniversalTime().ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture)); }
+				set { WriteAscii(30, 18, value.ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture)); }
 			} // prop FileStamp
 
 			public int HashOffset => 106 + 2;
@@ -1798,7 +1798,7 @@ namespace TecWare.DE.Odette
 			public DateTime FileStamp
 			{
 				get { return DateTime.ParseExact(ReadAscii(33, 18), "yyyyMMddHHmmssffff", CultureInfo.InvariantCulture); }
-				set { WriteAscii(33, 18, value.ToUniversalTime().ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture)); }
+				set { WriteAscii(33, 18, value.ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture)); }
 			} // prop FileStamp
 
 			public string Destination
