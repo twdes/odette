@@ -74,6 +74,9 @@
     <EmbeddedResource Include="DEModette.xsd">
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <None Include="..\..\..\Server\des.licenseheader">
+      <Link>des.licenseheader</Link>
+    </None>
     <None Include="..\Readme.md">
       <Link>Readme.md</Link>
     </None>
