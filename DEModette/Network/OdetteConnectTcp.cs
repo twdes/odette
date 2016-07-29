@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using TecWare.DE.Server;
@@ -71,7 +73,7 @@ namespace TecWare.DE.Odette.Network
 
 							if (useSsl)
 							{
-								var ssl = new SslStream(stream, false);
+								var ssl = new SslStream(stream, false, SslRemoteCertificateValidateCallback); // , SslLocalCertificateSelector
 								await ssl.AuthenticateAsClientAsync(targetHost);
 
 								var cert = ssl.RemoteCertificate;
@@ -96,6 +98,15 @@ namespace TecWare.DE.Odette.Network
 				inConnectionPhase = false;
 			}
 		} // proc OnRunJobAsync
+
+		//private X509Certificate SslLocalCertificateSelector(object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers)
+		//{
+		//	Log.Info("Host: {0}", targetHost);
+		//	return null;
+		//} // func SslLocalCertificateSelector
+
+		private bool SslRemoteCertificateValidateCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+			=> NetworkHelper.SslRemoteCertificateValidate(Log, false, certificate, chain, sslPolicyErrors);
 
 		protected override bool CanRunParallelTo(ICronJobItem o)
 		{

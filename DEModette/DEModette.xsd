@@ -111,7 +111,7 @@
 					</xs:attribute>
 					<xs:attribute name="ssl" type="CertificateType" use="optional">
 						<xs:annotation>
-							<xs:documentation>The server certificate for the listener (the default port is 6619).</xs:documentation>
+							<xs:documentation>The server certificate for the listener (the default port is 6619, now).</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
 					<xs:attribute name="skipInvalidCertificate" type="xs:boolean" use="optional" default="false">
