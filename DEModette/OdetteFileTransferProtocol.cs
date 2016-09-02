@@ -283,6 +283,8 @@ namespace TecWare.DE.Odette
 									sb.Append(b[i].ToString("X2")).Append(' ');
 							}
 						}
+						else if (obj is DateTime)
+							sb.Append(((DateTime)obj).ToString("yyyy-MM-dd HH:mm:ss,ffff"));
 						else
 							sb.Append(obj);
 					}
@@ -1684,6 +1686,8 @@ namespace TecWare.DE.Odette
 				set { WriteAscii(81, 25, value); }
 			} // prop Originator
 
+			string IOdetteFile.Originator => Destination; // destination is the orginal originator
+
 			public abstract int ReasonCode { get; }
 			public abstract string ReasonText { get; }
 
@@ -1812,6 +1816,8 @@ namespace TecWare.DE.Odette
 				get { return ReadAscii(76, 25); }
 				set { WriteAscii(76, 25, value); }
 			} // prop Originator
+
+			string IOdetteFile.Originator => Destination; // destination is the orginal originator
 
 			public string Creator
 			{
