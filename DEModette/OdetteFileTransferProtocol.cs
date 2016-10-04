@@ -2790,10 +2790,10 @@ namespace TecWare.DE.Odette
 					var cmd2 = startFileCommand as StartFileCommandV2;
 					if (cmd2 != null) // i support only level Version 1
 					{
-						if (cmd2.CipherSuite != 0)
-							throw new OdetteFileServiceException(OdetteAnswerReason.CipherSuiteNotSupported);
 						if (cmd2.SecurityLevel != OdetteSecurityLevels.None)
 							throw new OdetteFileServiceException(OdetteAnswerReason.EncryptedFileNotAllowed);
+						//if (cmd2.CipherSuite != 0 ) if security level is none, do not care about the cipher suits
+						//	throw new OdetteFileServiceException(OdetteAnswerReason.CipherSuiteNotSupported);
 						if (cmd2.Compressed != 0)
 							throw new OdetteFileServiceException(OdetteAnswerReason.CompressionNotAllowed);
 						if (cmd2.Enveloped != 0)
