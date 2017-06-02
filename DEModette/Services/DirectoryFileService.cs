@@ -1,4 +1,19 @@
-﻿using System;
+﻿#region -- copyright --
+//
+// Licensed under the EUPL, Version 1.1 or - as soon they will be approved by the
+// European Commission - subsequent versions of the EUPL(the "Licence"); You may
+// not use this work except in compliance with the Licence.
+//
+// You may obtain a copy of the Licence at:
+// http://ec.europa.eu/idabc/eupl
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the Licence for the
+// specific language governing permissions and limitations under the Licence.
+//
+#endregion
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -193,10 +208,8 @@ namespace TecWare.DE.Odette.Services
 				}
 			} // func OpenRead
 
-			public void SaveExtensions()
-			{
-				xExtentions.Save(GetExtendedFile());
-			} // proc SaveExtensions
+			public Task SaveExtensionsAsync()
+				=> Task.Run(() => xExtentions.Save(GetExtendedFile()));
 
 			public long GetFileSizeSafe()
 			{
@@ -211,18 +224,16 @@ namespace TecWare.DE.Odette.Services
 				}
 			} // func GetFileSizeSafe
 
-			internal void NotifyEndToEndReceived()
+			internal async Task NotifyEndToEndReceivedAsync()
 			{
-				DirectoryFileServiceItem nt;
-				if (notifyTarget.TryGetTarget(out nt))
-					nt.OnEndToEndReceived(this);
+				if (notifyTarget.TryGetTarget(out var nt))
+					await nt.OnEndToEndReceivedAsync(this);
 			} // proc NotifyEndToEndReceived
 
-			internal void NotifyFileReceived()
+			internal async Task NotifyFileReceivedAsync()
 			{
-				DirectoryFileServiceItem nt;
-				if (notifyTarget.TryGetTarget(out nt))
-					nt.OnFileReceived(this);
+				if (notifyTarget.TryGetTarget(out var nt))
+					await nt.OnFileReceivedAsync(this);
 			} // proc NotifyFileReceived
 
 			public FileInfo FileInfo => fileInfo;
@@ -258,10 +269,10 @@ namespace TecWare.DE.Odette.Services
 				xCommit = item.Extensions.Root.Element("commit") ?? new XElement("commit");
 			} // ctor
 
-			public void Commit()
+			public async Task CommitAsync()
 			{
-				ChangeInFileState(item.FileInfo, OdetteInFileState.Finished);
-				item.NotifyEndToEndReceived();
+				await ChangeInFileStateAsync(item.FileInfo, OdetteInFileState.Finished);
+				await item.NotifyEndToEndReceivedAsync();
 			} // proc Commit
 
 			public IOdetteFile Name => item;
@@ -308,47 +319,47 @@ namespace TecWare.DE.Odette.Services
 
 			#region -- Write/Read/Seek ------------------------------------------------------
 
-			public void Write(byte[] buf, int offset, int count, bool isEoR)
+			public Task WriteAsync(byte[] buf, int offset, int count, bool isEoR)
 			{
 				if (readOnly)
 					throw new InvalidOperationException();
 				if (stream == null)
 					throw new ArgumentNullException("stream");
 
-				WriteIntern(buf, offset, count, isEoR);
-			} // proc Write
+				return WriteInternAsync(buf, offset, count, isEoR);
+			} // proc WriteAsync
 
-			protected abstract void WriteIntern(byte[] buf, int offset, int count, bool isEoR);
+			protected abstract Task WriteInternAsync(byte[] buf, int offset, int count, bool isEoR);
 
-			public int Read(byte[] buf, int offset, int count, out bool isEoR)
+			public Task<(int readed, bool isEoR)> ReadAsync(byte[] buf, int offset, int count)
 			{
 				if (!readOnly)
 					throw new InvalidOperationException();
 				if (stream == null)
 					throw new ArgumentNullException("stream");
 
-				return ReadIntern(buf, offset, count, out isEoR);
-			} // func Read
+				return ReadInternAsync(buf, offset, count);
+			} // func ReadAsync
 
-			protected abstract int ReadIntern(byte[] buf, int offset, int count, out bool isEoR);
+			protected abstract Task<(int readed, bool isEoR)> ReadInternAsync(byte[] buf, int offset, int count);
 
-			public abstract long Seek(long position);
+			public abstract Task<long> SeekAsync(long position);
 
-			protected long Truncate(long readPosition)
+			protected async Task<long> TruncateAsync(long readPosition)
 			{
 				if (!readOnly)
 				{
 					if (readPosition < stream.Length)
-						stream.SetLength(readPosition); // truncate current data
+						await Task.Run(() => stream.SetLength(readPosition)); // truncate current data
 				}
 				return readPosition;
-			} // func Truncate
+			} // func TruncateAsync
 
 			#endregion
 
 			#region -- Commit/Transmission State --------------------------------------------
 
-			public void CommitFile(long recordCount, long unitCount)
+			public async Task CommitFileAsync(long recordCount, long unitCount)
 			{
 				if (readOnly)
 					throw new InvalidOperationException();
@@ -363,11 +374,11 @@ namespace TecWare.DE.Odette.Services
 				Procs.FreeAndNil(ref stream);
 
 				// rename file to show that it is received
-				ChangeInFileState(fileItem.FileInfo, OdetteInFileState.Received);
+				await ChangeInFileStateAsync(fileItem.FileInfo, OdetteInFileState.Received);
 
 				// notify that the file is received
-				fileItem.NotifyFileReceived();
-			} // proc CommitFile
+				await fileItem.NotifyFileReceivedAsync();
+			} // proc CommitFileAsync
 
 			private XElement EnforceSendElement()
 			{
@@ -377,7 +388,7 @@ namespace TecWare.DE.Odette.Services
 				return xSend;
 			} // func EnforceSendElement
 
-			public void SetTransmissionError(OdetteAnswerReason answerReason, string reasonText, bool retryFlag)
+			public async Task SetTransmissionErrorAsync(OdetteAnswerReason answerReason, string reasonText, bool retryFlag)
 			{
 				if (!readOnly)
 					throw new InvalidOperationException();
@@ -391,14 +402,14 @@ namespace TecWare.DE.Odette.Services
 				xSend.SetAttributeValue("reasonCode", (int)answerReason);
 				xSend.SetAttributeValue("reasonText", reasonText);
 
-				fileItem.SaveExtensions();
+				await fileItem.SaveExtensionsAsync();
 
 				// no retry, mark as finished
 				if (!retryFlag)
-					ChangeOutFileState(fileItem.FileInfo, OdetteOutFileState.Finished);
-			} // proc SetTransmissionError
+					await ChangeOutFileStateAsync(fileItem.FileInfo, OdetteOutFileState.Finished);
+			} // proc SetTransmissionErrorAsync
 
-			public void SetTransmissionState()
+			public async Task SetTransmissionStateAsync()
 			{
 				if (!readOnly)
 					throw new InvalidOperationException();
@@ -412,11 +423,11 @@ namespace TecWare.DE.Odette.Services
 				xSend.SetAttributeValue("reasonCode", 0);
 				xSend.SetAttributeValue("reasonText", String.Empty);
 
-				fileItem.SaveExtensions();
+				await fileItem.SaveExtensionsAsync();
 
 				// chanhe state
-				ChangeOutFileState(fileItem.FileInfo, OdetteOutFileState.WaitEndToEnd);
-			} // proc SetTransmissionState
+				await ChangeOutFileStateAsync(fileItem.FileInfo, OdetteOutFileState.WaitEndToEnd);
+			} // proc ChangeOutFileStateAsync
 
 			#endregion
 
@@ -445,28 +456,26 @@ namespace TecWare.DE.Odette.Services
 			{
 			} // ctor
 
-			protected override void WriteIntern(byte[] buf, int offset, int count, bool isEof)
-			{
-				Stream.Write(buf, offset, count);
-			} // proc WriteIntern
+			protected override Task WriteInternAsync(byte[] buf, int offset, int count, bool isEof)
+				=> Stream.WriteAsync(buf, offset, count);
 
-			protected override int ReadIntern(byte[] buf, int offset, int count, out bool isEoR)
+			protected override async Task<(int readed, bool isEoR)> ReadInternAsync(byte[] buf, int offset, int count)
 			{
-				var readed = Stream.Read(buf, offset, count);
+				var readed = await Stream.ReadAsync(buf, offset, count);
 				if (readed == 0)
 					readed = -1; // enforced eof
-				isEoR = readed < count;
-				return readed;
-			} // func ReadIntern
 
-			public override long Seek(long position)
+				return (readed, readed < count);
+			} // func ReadInternAsync
+
+			public override async Task<long> SeekAsync(long position)
 			{
 				var newpos = position << 10;
 				if (newpos > Stream.Length)
 					newpos = Stream.Length & ~0x3FF;
 
-				return Truncate(Stream.Seek(newpos, SeekOrigin.Begin)) >> 10;
-			} // func Seek
+				return await TruncateAsync(Stream.Seek(newpos, SeekOrigin.Begin)) >> 10;
+			} // func SeekAsync
 		} // class OdetteFileStreamUnstructured
 
 		#endregion
@@ -486,42 +495,42 @@ namespace TecWare.DE.Odette.Services
 				this.recordSize = fileItem.MaximumRecordSize;
 			} // ctor
 
-			protected override void WriteIntern(byte[] buf, int offset, int count, bool isEoR)
+			protected override async Task WriteInternAsync(byte[] buf, int offset, int count, bool isEoR)
 			{
 				recordOffset += count;
-				Stream.Write(buf, offset, count);
+				await Stream.WriteAsync(buf, offset, count);
 				if (isEoR)
 				{
 					if (recordOffset != recordSize)
 						throw new OdetteFileServiceException(OdetteAnswerReason.UnspecifiedReason, String.Format("Invalid record size (expected {0} but {1} bytes received).", recordSize, recordOffset));
 					recordOffset = 0;
 				}
-			} // proc WriteIntern
+			} // proc WriteInternAsync
 
-			protected override int ReadIntern(byte[] buf, int offset, int count, out bool isEoR)
+			protected override async Task<(int readed, bool isEoR)> ReadInternAsync(byte[] buf, int offset, int count)
 			{
 				var restRecord = recordSize - recordOffset;
 
 				// read bytes
 				count = count < restRecord ? count : restRecord;
-				var r = Stream.Read(buf, offset, count);
+				var r = await Stream.ReadAsync(buf, offset, count);
 				recordOffset += r;
 
 				// check eor
-				isEoR = recordOffset >= recordSize;
+				var isEoR = recordOffset >= recordSize;
 				if (isEoR)
 					recordOffset = 0;
 
-				return r;
-			} // func ReadIntern
+				return (r, isEoR);
+			} // func ReadInternAsync
 
-			public override long Seek(long position)
+			public override async Task<long> SeekAsync(long position)
 			{
 				var newpos = position * recordSize;
 				if (newpos > Stream.Length)
 					newpos = Stream.Length / recordSize * recordSize;
-				return Truncate(Stream.Seek(newpos, SeekOrigin.Begin)) / recordSize;
-			} // func Seek
+				return await TruncateAsync(Stream.Seek(newpos, SeekOrigin.Begin)) / recordSize;
+			} // func SeekAsync
 
 			public override long RecordCount => TotalLength / recordSize;
 		} // class OdetteFileStreamFixed
@@ -582,15 +591,15 @@ namespace TecWare.DE.Odette.Services
 						select new XElement("r", new XAttribute("o", t.Item1), new XAttribute("l", t.Item2))
 					);
 
-					FileItem.SaveExtensions();
+					FileItem.SaveExtensionsAsync();
 				}
 				base.Dispose(disposing);
 			} // proc Dispose
 
-			protected override void WriteIntern(byte[] buf, int offset, int count, bool isEoR)
+			protected override async Task WriteInternAsync(byte[] buf, int offset, int count, bool isEoR)
 			{
 				// write data to file
-				Stream.Write(buf, offset, count);
+				await Stream.WriteAsync(buf, offset, count);
 				recordOffset += count;
 
 				if (recordOffset > maximumRecordSize) // check size
@@ -602,7 +611,7 @@ namespace TecWare.DE.Odette.Services
 				}
 			} // proc WriteIntern
 
-			protected override int ReadIntern(byte[] buf, int offset, int count, out bool isEoR)
+			protected override async Task<(int readed, bool isEoR)> ReadInternAsync(byte[] buf, int offset, int count)
 			{
 				if (currentRecord < records.Count)
 				{
@@ -619,26 +628,23 @@ namespace TecWare.DE.Odette.Services
 
 					// read bytes
 					count = count < restRecord ? count : restRecord;
-					var r = Stream.Read(buf, offset, count);
+					var r = await Stream.ReadAsync(buf, offset, count);
 					recordOffset += r;
 
 					// check eor
-					isEoR = recordOffset >= recordLength;
+					var isEoR = recordOffset >= recordLength;
 					if (isEoR)
 					{
 						currentRecord++;
 						recordOffset = 0;
 					}
-					return r;
+					return (r, isEoR);
 				}
 				else
-				{
-					isEoR = true;
-					return -1;
-				}
+					return (-1, true);
 			} // func ReadIntern
 
-			public override long Seek(long position)
+			public override Task<long> SeekAsync(long position)
 			{
 				if (position >= RecordCount)
 					position = RecordCount;
@@ -649,7 +655,7 @@ namespace TecWare.DE.Odette.Services
 					recordOffset = 0;
 				}
 
-				return currentRecord;
+				return Task.FromResult<long>(currentRecord);
 			} // func Seek
 
 			public override long RecordCount => records.Count;
@@ -683,9 +689,9 @@ namespace TecWare.DE.Odette.Services
 				log.Info("Session finished...");
 			} // proc Dispose
 
-			public IOdetteFileWriter CreateInFile(IOdetteFile file, string userData)
+			public async Task<IOdetteFileWriter> CreateInFileAsync(IOdetteFile file, string userData)
 			{
-				var incomingFile = String.Format("In coming file {0} ", OdetteFileMutable.FormatFileName(file, userData));
+				var incomingFile = String.Format("In coming file {0} ", OdetteFileImmutable.FormatFileName(file, userData));
 				if (!service.IsInFileAllowed(file))
 				{
 					log.Info(incomingFile + "ignored");
@@ -701,11 +707,11 @@ namespace TecWare.DE.Odette.Services
 					throw new OdetteFileServiceException(OdetteAnswerReason.DuplicateFile, "File already exists.", false);
 
 				// open the file to write
-				var fileItem = new FileItem(service, fi, file, true);
+				var fileItem = await Task.Run(() => new FileItem(service, fi, file, true));
 				fileItem.Log(log, incomingFile + "accepted");
 				try
 				{
-					return fileItem.OpenWrite();
+					return await Task.Run(new Func<IOdetteFileWriter>(fileItem.OpenWrite));
 				}
 				catch (IOException e)
 				{
@@ -726,7 +732,7 @@ namespace TecWare.DE.Odette.Services
 					{
 						var fileItem = new FileItem(service, fi, file, false);
 						var e2e = new FileEndToEnd(fileItem);
-						fileItem.Log(log, String.Format("Sent {1} end to end for: {0}", OdetteFileMutable.FormatFileName(file, e2e.UserData), e2e.ReasonCode == 0 ? "positive" : "negative"));
+						fileItem.Log(log, String.Format("Sent {1} end to end for: {0}", OdetteFileImmutable.FormatFileName(file, e2e.UserData), e2e.ReasonCode == 0 ? "positive" : "negative"));
 						yield return e2e;
 					}
 					else
@@ -740,14 +746,14 @@ namespace TecWare.DE.Odette.Services
 					yield break;
 
 				// collect alle out files
-				foreach (var fi in service.directoryOut.GetFiles("*" + GetOutFileExtention(OdetteOutFileState.Sent)))
+				foreach (var fi in service.directoryOut.EnumerateFiles("*" + GetOutFileExtention(OdetteOutFileState.Sent)))
 				{
 					var file = TrySplitFileName(fi.Name);
 					if (file != null)
 						yield return new Func<IOdetteFileReader>(() =>
 						{
 							var fileItem = new FileItem(service, fi, file, false);
-							fileItem.Log(log, String.Format("Sent file to destination: {0}", OdetteFileMutable.FormatFileName(file, fileItem.SendUserData)));
+							fileItem.Log(log, String.Format("Sent file to destination: {0}", OdetteFileImmutable.FormatFileName(file, fileItem.SendUserData)));
 
 							// file for sent
 							return fileItem.OpenRead();
@@ -755,7 +761,7 @@ namespace TecWare.DE.Odette.Services
 				}
 			} // func GetOutFiles
 
-			public bool UpdateOutFileState(IOdetteFileEndToEndDescription description)
+			public async Task<bool> UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description)
 			{
 				if (service.directoryOut == null) // do we have the directory
 					return false;
@@ -766,11 +772,11 @@ namespace TecWare.DE.Odette.Services
 					return false;
 
 				// mark file as finish
-				ChangeOutFileState(fi, OdetteOutFileState.ReceivedEndToEnd);
+				await ChangeOutFileStateAsync(fi, OdetteOutFileState.ReceivedEndToEnd);
 
 				// update file information
-				var fileItem = new FileItem(service, fi, description.Name, false);
-				fileItem.Log(log, String.Format("Update file commit: {0} with [{1}] {2}", OdetteFileMutable.FormatFileName(description.Name, description.UserData), description.ReasonCode, description.ReasonText));
+				var fileItem = await Task.Run(() => new FileItem(service, fi, description.Name, false));
+				fileItem.Log(log, String.Format("Update file commit: {0} with [{1}] {2}", OdetteFileImmutable.FormatFileName(description.Name, description.UserData), description.ReasonCode, description.ReasonText));
 
 				var xCommit = fileItem.Extensions.Root.Element("commit");
 				if (xCommit == null)
@@ -780,7 +786,7 @@ namespace TecWare.DE.Odette.Services
 				xCommit.SetAttributeValue("reasonText", description.ReasonText);
 				xCommit.SetAttributeValue("userData", description.UserData);
 
-				fileItem.SaveExtensions();
+				await fileItem.SaveExtensionsAsync();
 
 				return true;
 			} // proc UpdateOutFileState
@@ -794,9 +800,9 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		internal const string FileSelectorRegEx = @"([A-Z0-9]{1,25})#([A-Za-z0-9\/\-\.\&\(\)]{1,26})#(\d{18})\.?.*";
+		internal const string fileSelectorRegEx = @"([A-Z0-9]{1,25})#([A-Za-z0-9\/\-\.\&\(\)]{1,26})#(\d{18})\.?.*";
 
-		private const string FileStampFormat = "yyyyMMddHHmmssffff";
+		private const string fileStampFormat = "yyyyMMddHHmmssffff";
 
 		private DirectoryInfo directoryIn = null;
 		private DirectoryInfo directoryOut = null;
@@ -905,24 +911,20 @@ namespace TecWare.DE.Odette.Services
 			}
 		} // proc OnSessionStart
 
-		private void OnFileReceived(FileItem fileItem)
-		{
-			CallFileItemNotify("OnFileReceived", fileItem);
-		} // proc OnFileReceived
+		private Task OnFileReceivedAsync(FileItem fileItem)
+			=> CallFileItemNotifyAsync("OnFileReceived", fileItem);
 
-		private void OnEndToEndReceived(FileItem fileItem)
-		{
-			CallFileItemNotify("OnEndToEndReceived", fileItem);
-		} // proc OnEndToEndReceived
+		private Task OnEndToEndReceivedAsync(FileItem fileItem)
+			=> CallFileItemNotifyAsync("OnEndToEndReceived", fileItem);
 
-		private void CallFileItemNotify(string methodName, FileItem fileItem)
+		private async Task CallFileItemNotifyAsync(string methodName, FileItem fileItem)
 		{
 			var m = this[methodName];
 			if (m != null && Lua.RtInvokeable(m))
 			{
 				try
-					{
-					CallMember(methodName, fileItem, fileItem.FileInfo);
+				{
+					await Task.Run(() => CallMember(methodName, fileItem, fileItem.FileInfo));
 					Log.Info("{0} successful.", methodName);
 				}
 				catch (Exception e)
@@ -970,7 +972,7 @@ namespace TecWare.DE.Odette.Services
 
 			return fileDescription.Originator + "#" +
 				fileDescription.VirtualFileName + "#" +
-				fileDescription.FileStamp.ToString(FileStampFormat, CultureInfo.InvariantCulture);
+				fileDescription.FileStamp.ToString(fileStampFormat, CultureInfo.InvariantCulture);
 		} // func GetFileName
 
 		private static IOdetteFile TrySplitFileName(string name)
@@ -978,16 +980,10 @@ namespace TecWare.DE.Odette.Services
 			if (String.IsNullOrEmpty(name))
 				throw new ArgumentNullException("name");
 
-			DateTime fileStamp;
-			var m = Regex.Match(name, FileSelectorRegEx);
-			if (m.Success && DateTime.TryParseExact(m.Groups[3].Value, FileStampFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out fileStamp))
-			{
-				return new OdetteFileMutable(m.Groups[2].Value, fileStamp, m.Groups[1].Value);
-			}
-			else
-			{
-				return null;
-			}
+			var m = Regex.Match(name, fileSelectorRegEx);
+			return m.Success && DateTime.TryParseExact(m.Groups[3].Value, fileStampFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var fileStamp)
+				? new OdetteFileImmutable(m.Groups[2].Value, fileStamp, m.Groups[1].Value)
+				: null;
 		} // func TrySplitFileName
 
 		private static string GetInFileExtention(OdetteInFileState state)
@@ -1027,30 +1023,26 @@ namespace TecWare.DE.Odette.Services
 		/// <param name="state"></param>
 		/// <returns></returns>
 		internal FileInfo CreateInFileName(IOdetteFile file, OdetteInFileState state)
-		{
-			return new FileInfo(Path.Combine(directoryIn.FullName, GetFileName(file) + GetInFileExtention(state)));
-		} // func CreateInFileName
+			=> new FileInfo(Path.Combine(directoryIn.FullName, GetFileName(file) + GetInFileExtention(state)));
 
 		/// <summary>Builds the file name with state extention.</summary>
 		/// <param name="file"></param>
 		/// <param name="state"></param>
 		/// <returns></returns>
 		internal FileInfo CreateOutFileName(IOdetteFile file, OdetteOutFileState state)
-		{
-			return new FileInfo(Path.Combine(directoryOut.FullName, GetFileName(file) + GetOutFileExtention(state)));
-		} // func CreateOutFileName
+			=> new FileInfo(Path.Combine(directoryOut.FullName, GetFileName(file) + GetOutFileExtention(state)));
 
-		private static void ChangeInFileState(FileInfo fileInfo, OdetteInFileState newState)
+		private static Task ChangeInFileStateAsync(FileInfo fileInfo, OdetteInFileState newState)
 		{
 			var fiNewFileName = Path.ChangeExtension(fileInfo.FullName, GetInFileExtention(newState));
-			fileInfo.MoveTo(fiNewFileName);
-		} // func ChangeInFileState
+			return Task.Run(() => fileInfo.MoveTo(fiNewFileName));
+		} // func ChangeInFileStateAsync
 
-		private static void ChangeOutFileState(FileInfo fileInfo, OdetteOutFileState newState)
+		private static Task ChangeOutFileStateAsync(FileInfo fileInfo, OdetteOutFileState newState)
 		{
 			var fiNewFileName = Path.ChangeExtension(fileInfo.FullName, GetOutFileExtention(newState));
-			fileInfo.MoveTo(fiNewFileName);
-		} // func ChangeOutFileState
+			return Task.Run(() => fileInfo.MoveTo(fiNewFileName));
+		} // func ChangeOutFileStateAsync
 
 		#endregion
 	} // class DirectoryFileServiceItem

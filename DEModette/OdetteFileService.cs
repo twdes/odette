@@ -1,5 +1,21 @@
-﻿using System;
+﻿#region -- copyright --
+//
+// Licensed under the EUPL, Version 1.1 or - as soon they will be approved by the
+// European Commission - subsequent versions of the EUPL(the "Licence"); You may
+// not use this work except in compliance with the Licence.
+//
+// You may obtain a copy of the Licence at:
+// http://ec.europa.eu/idabc/eupl
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the Licence for the
+// specific language governing permissions and limitations under the Licence.
+//
+#endregion
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TecWare.DE.Server;
 using TecWare.DE.Stuff;
 
@@ -77,17 +93,17 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteFileMutable --------------------------------------------------
+	#region -- class OdetteFileImmutable ------------------------------------------------
 
 	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
-	public sealed class OdetteFileMutable : IOdetteFile
+	public sealed class OdetteFileImmutable : IOdetteFile
 	{
 		private readonly string virtualFileName;
 		private readonly DateTime fileStamp;
 		private readonly string originator;
 
-		public OdetteFileMutable(string virtualFileName, DateTime fileStamp, string originator)
+		public OdetteFileImmutable(string virtualFileName, DateTime fileStamp, string originator)
 		{
 			this.virtualFileName = virtualFileName;
 			this.fileStamp = fileStamp;
@@ -104,7 +120,7 @@ namespace TecWare.DE.Odette
 
 		public static string FormatFileName(IOdetteFile file, string userData)
 			=> file.Originator + "/" + file.VirtualFileName + "[userData=" + userData + "]";
-	} // class OdetteFileMutable
+	} // class OdetteFileImmutable
 
 	#endregion
 
@@ -137,10 +153,10 @@ namespace TecWare.DE.Odette
 		/// <param name="offset"></param>
 		/// <param name="count"></param>
 		/// <param name="isEoR">marks a end of the current record or the complete file.</param>
-		void Write(byte[] buf, int offset, int count, bool isEoR);
+		Task WriteAsync(byte[] buf, int offset, int count, bool isEoR);
 		/// <summary>File is received successful.</summary>
 		/// <returns></returns>
-		void CommitFile(long recordCount, long unitCount);
+		Task CommitFileAsync(long recordCount, long unitCount);
 
 		/// <summary>File name. The description is not used.</summary>
 		IOdetteFile Name { get; }
@@ -165,15 +181,15 @@ namespace TecWare.DE.Odette
 		/// <param name="count"></param>
 		/// <param name="isEoR">marks a end of the current record or the complete file.</param>
 		/// <returns>Bytes copied in the buffer.</returns>
-		int Read(byte[] buf, int offset, int count, out bool isEoR);
+		Task<(int readed, bool isEoR)> ReadAsync(byte[] buf, int offset, int count);
 
 		/// <summary>Transmission failed.</summary>
 		/// <param name="answerReason"></param>
 		/// <param name="reasonText"></param>
 		/// <param name="retryFlag"></param>
-		void SetTransmissionError(OdetteAnswerReason answerReason, string reasonText, bool retryFlag);
+		Task SetTransmissionErrorAsync(OdetteAnswerReason answerReason, string reasonText, bool retryFlag);
 		/// <summary>File transmitted successful</summary>
-		void SetTransmissionState();
+		Task SetTransmissionStateAsync();
 
 		/// <summary>Description or name of the file. Is the description missing, it will be sent as binary file.</summary>
 		IOdetteFile Name { get; }
@@ -197,7 +213,7 @@ namespace TecWare.DE.Odette
 	{
 		/// <summary>Reposition for the file (1k steps or records).</summary>
 		/// <param name="position"></param>
-		long Seek(long position);
+		Task<long> SeekAsync(long position);
 	} // interface IOdetteFilePosition
 
 	#endregion
@@ -228,7 +244,7 @@ namespace TecWare.DE.Odette
 	public interface IOdetteFileEndToEnd : IOdetteFileEndToEndDescription
 	{
 		/// <summary>Marks the end to message as sent.</summary>
-		void Commit();
+		Task CommitAsync();
 	} // interface IOdetteFileEndToEnd
 
 	#endregion
@@ -242,7 +258,7 @@ namespace TecWare.DE.Odette
 		/// <summary>Creates a new file in the service.</summary>
 		/// <param name="file">Description or the file name. If the description is missing, the file will be handled as a normal binary file.</param>
 		/// <returns></returns>
-		IOdetteFileWriter CreateInFile(IOdetteFile file, string userData);
+		Task<IOdetteFileWriter> CreateInFileAsync(IOdetteFile file, string userData);
 		/// <summary>List of end to end messages, that need to send.</summary>
 		/// <returns></returns>
 		IEnumerable<IOdetteFileEndToEnd> GetEndToEnd();
@@ -253,7 +269,7 @@ namespace TecWare.DE.Odette
 
 		/// <summary>End to end received for a file.</summary>
 		/// <param name="description"></param>
-		bool UpdateOutFileState(IOdetteFileEndToEndDescription description);
+		Task<bool> UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description);
 
 		/// <summary>Id of the destination.</summary>
 		string DestinationId { get; }
@@ -336,11 +352,11 @@ namespace TecWare.DE.Odette
 		/// <param name="fileDescription"></param>
 		/// <param name="userData"></param>
 		/// <returns></returns>
-		public IOdetteFileWriter CreateInFile(IOdetteFile file, string userData)
+		public async Task<IOdetteFileWriter> CreateInFileAsync(IOdetteFile file, string userData)
 		{
 			foreach (var s in services)
 			{
-				var inFile = s.CreateInFile(file, userData);
+				var inFile = await s.CreateInFileAsync(file, userData);
 				if (inFile != null)
 					return inFile;
 			}
@@ -368,15 +384,15 @@ namespace TecWare.DE.Odette
 		/// <summary>End to end received for a file.</summary>
 		/// <param name="file"></param>
 		/// <param name="description"></param>
-		public void UpdateOutFileState(IOdetteFileEndToEndDescription description)
+		public async Task UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description)
 		{
 			foreach (var s in services)
 			{
-				if (s.UpdateOutFileState(description))
+				if (await s.UpdateOutFileStateAsync(description))
 					return;
 			}
 			
-			throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, String.Format("E2E failed for {0}.", OdetteFileMutable.FormatFileName(description.Name, description.UserData)), false);
+			throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, String.Format("E2E failed for {0}.", OdetteFileImmutable.FormatFileName(description.Name, description.UserData)), false);
 		} // proc UpdateOutFileState
 
 		/// <summary>File service destination id</summary>
