@@ -3083,62 +3083,17 @@ namespace TecWare.DE.Odette
 		private static readonly XNamespace OdetteNamespace = "http://tecware-gmbh.de/dev/des/2014/odette";
 		private static readonly XName xnCertificates = OdetteNamespace + "certificates";
 
-		#region -- class ProtocolPool -----------------------------------------------------
-
-		///////////////////////////////////////////////////////////////////////////////
-		/// <summary></summary>
-		private sealed class ProtocolPool : DEThreadLoop
-		{
-			private readonly OdetteFileTransferProtocolItem owner;
-
-			public ProtocolPool(OdetteFileTransferProtocolItem owner)
-				: base(owner, "Protocol")
-			{
-				this.owner = owner;
-			} // ctor
-
-			public Task StartProtocolAsync(IOdetteFtpChannel channel, bool initiator)
-			{
-				var protocol = new OdetteFtp(owner, channel);
-				owner.AddProtocol(protocol);
-
-				return Factory.StartNew(() => protocol.RunAsync(initiator))
-					.ContinueWith(t => EndProtocolAsync(t.Result.Wait, protocol));
-			} // proc StartProtocolAsync
-
-			private void EndProtocolAsync(Action procWait, OdetteFtp protocol)
-			{
-				try
-				{
-					procWait();
-
-					// disconnect protocol
-					Task.Run(() => protocol.DisconnectAsync());
-				}
-				catch (Exception e)
-				{
-					protocol.Log.Except("Abnormal termination.", e);
-				}
-				finally
-				{
-					owner.RemoveProtocol(protocol);
-				}
-			} // proc EndProtocolAsync
-		} // class ProtocolPool
-
-		#endregion
-
-		private ProtocolPool threadProtocol;
+		private readonly DEThread threadProtocol;
 		private bool debugCommands = false;
 
-		private DEList<OdetteFtp> activeProtocols;
+		private readonly DEList<OdetteFtp> activeProtocols;
 
 		#region -- Ctor/Dtor --------------------------------------------------------------
 
 		public OdetteFileTransferProtocolItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
-			threadProtocol = new ProtocolPool(this);
+			threadProtocol = new DEThread(this, "Protocol", null); // start a thread to handle the protocol
 
 			this.activeProtocols = new DEList<OdetteFtp>(this, "tw_protocols", "Protocols");
 
@@ -3149,7 +3104,10 @@ namespace TecWare.DE.Odette
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
-				Procs.FreeAndNil(ref threadProtocol);
+			{
+				threadProtocol.Dispose();
+				activeProtocols.Dispose();
+			}
 
 			base.Dispose(disposing);
 		} // proc Dispose
@@ -3207,8 +3165,38 @@ namespace TecWare.DE.Odette
 
 		#region -- StartProtocolAsync, CreateFileService ----------------------------------
 
-		public Task StartProtocolAsync(IOdetteFtpChannel channel, bool initiator)
-			=> threadProtocol.StartProtocolAsync(channel, initiator);
+		public void StartProtocol(IOdetteFtpChannel channel, bool initiator)
+		{
+			var protocol = new OdetteFtp(this, channel);
+			AddProtocol(protocol);
+
+			threadProtocol.RootContext.Post(s =>
+				{
+					protocol
+						.RunAsync(initiator)
+						.ContinueWith(
+							t =>
+							{
+								try
+								{
+									t.Wait();
+									protocol.DisconnectAsync().AwaitTask();
+								}
+								catch(Exception e)
+								{
+									protocol.Log.Except("Abnormal termination.", e);
+								}
+								finally
+								{
+									RemoveProtocol(protocol);
+								}
+							},
+							TaskContinuationOptions.ExecuteSynchronously
+						);
+
+				}, 
+				null);
+		}
 
 		internal OdetteFileService CreateFileService(string destinationId, string password)
 			=> new OdetteFileService(this, destinationId, password);

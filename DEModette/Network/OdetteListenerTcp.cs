@@ -105,7 +105,7 @@ namespace TecWare.DE.Odette.Network
 			var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
 
 			// start the protocol
-			Task.Run(() => protocol.StartProtocolAsync(new OdetteNetworkStream(socket, "tcp:" + serverTcp.GetStreamInfo(socket), Config), false));
+			protocol.StartProtocol(new OdetteNetworkStream(socket, "tcp:" + serverTcp.GetStreamInfo(socket), Config), false);
 		} // proc CreateHandler
 
 		private void CreateSslHandler(Stream socket)
@@ -121,7 +121,7 @@ namespace TecWare.DE.Odette.Network
 				await ssl.AuthenticateAsServerAsync(serverCertificate, clientCertificateRequired, sslProtocols, false); // no revocation
 
 				var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
-				await protocol.StartProtocolAsync(new OdetteNetworkStream(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
+				protocol.StartProtocol(new OdetteNetworkStream(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
 			}
 			catch (Exception e)
 			{

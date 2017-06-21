@@ -96,7 +96,7 @@ namespace TecWare.DE.Odette.Network
 								stream = ssl;
 							}
 
-							await protocol.StartProtocolAsync(new OdetteNetworkStream(stream, channelName, Config), true);
+							protocol.StartProtocol(new OdetteNetworkStream(stream, channelName, Config), true);
 						}
 						catch (Exception e)
 						{
