@@ -1013,6 +1013,8 @@ namespace TecWare.DE.Odette.Services
 					return ".we2e";
 				case OdetteOutFileState.ReceivedEndToEnd:
 					return ".re2e";
+				case OdetteOutFileState.Finished:
+					return ".done";
 				default:
 					throw new ArgumentException("Invalid state.");
 			}
