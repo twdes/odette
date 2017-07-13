@@ -951,7 +951,7 @@ namespace TecWare.DE.Odette.Services
 
 			foreach (var cur in fileNameFilter)
 			{
-				if (ProcsDE.IsFilterEqual(fileDescription.VirtualFileName, cur))
+				if (Procs.IsFilterEqual(fileDescription.VirtualFileName, cur))
 					return true;
 			}
 
