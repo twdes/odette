@@ -2465,15 +2465,18 @@ namespace TecWare.DE.Odette
 		private async Task HandleSecurityChallengeListener()
 		{
 			// certifcate is from destination (private key)
-			var certificate = item.FindCertificates(fileService.DestinationId, false).FirstOrDefault();
-			if (certificate == null || !certificate.HasPrivateKey || certificate.PrivateKey.KeyExchangeAlgorithm == null)
+			var certificates = new X509Certificate2Collection(item.FindCertificates(fileService.DestinationId, false)
+				.Where(c => c.HasPrivateKey && c.PrivateKey.KeyExchangeAlgorithm != null) // force: private key
+				.ToArray()
+			);
+			if (certificates == null || certificates.Count == 0)
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "No or invalid private key, to encrypt the challenge.");
 
 			// authentifcation command challenge
 			var auth = await ReceiveCommandAsync<AuthentificationChallengeCommand>();
 
 			// decrypt and send back
-			var decryptedChallenge = certificate == null ? null : DecryptChallenge(auth.Challenge, certificate);
+			var decryptedChallenge = DecryptChallenge(auth.Challenge, certificates);
 			await SendCommandAsync(CreateEmptyCommand<AuthentificationResponseCommand>(
 				c =>
 				{
@@ -2514,13 +2517,13 @@ namespace TecWare.DE.Odette
 			}
 		} // func EncryptChallenge
 
-		private byte[] DecryptChallenge(byte[] challenge, X509Certificate2 certificate)
+		private byte[] DecryptChallenge(byte[] challenge, X509Certificate2Collection certificates)
 		{
 			try
 			{
 				var cms = new EnvelopedCms();
 				cms.Decode(challenge);
-				cms.Decrypt(cms.RecipientInfos[0], new X509Certificate2Collection(certificate));
+				cms.Decrypt(cms.RecipientInfos[0], certificates);
 
 				return cms.ContentInfo.Content;
 			}
