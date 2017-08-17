@@ -68,9 +68,10 @@ namespace TecWare.DE.Odette.Network
 			else
 			{
 				Log.Info("Try to locate certificate: {0}", useSsl);
-				serverCertificate = ProcsDE.FindCertificate(useSsl).FirstOrDefault(); // todo: select server certificate
+				serverCertificate = ProcsDE.FindCertificate(useSsl).FirstOrDefault();
 				if (serverCertificate == null)
 					throw new ArgumentException("Server certificate not found.");
+				Log.Info("Locate certificate: {0} {1}", serverCertificate.Thumbprint, serverCertificate.Subject);
 			}
 		} // proc OnBeginReadConfiguration
 
@@ -109,15 +110,15 @@ namespace TecWare.DE.Odette.Network
 		} // proc CreateHandler
 
 		private void CreateSslHandler(Stream socket)
-			=> CreateSslHandler(socket, serverCertificate);
+			=> CreateSslHandlerAsync(socket);
 
-		private async void CreateSslHandler(Stream socket, X509Certificate2 certificate)
+		private async void CreateSslHandlerAsync(Stream socket)
 		{
 			SslStream ssl = null;
 			try
 			{
-				ssl = new SslStream(socket, false, SslRemoteCertificateValidateCallback, null);
-				
+				ssl = new SslStream(socket, false, SslRemoteCertificateValidateCallback, null, EncryptionPolicy.RequireEncryption);
+
 				await ssl.AuthenticateAsServerAsync(serverCertificate, clientCertificateRequired, sslProtocols, false); // no revocation
 
 				var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
@@ -129,12 +130,7 @@ namespace TecWare.DE.Odette.Network
 				ssl?.Dispose();
 			}
 		} // func CreateSslHandler
-
-		//private X509Certificate SslLocalCertificateSelector(object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers)
-		//{
-		//	return null;
-		//} // func SslLocalCertificateSelector
-
+		
 		private bool SslRemoteCertificateValidateCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
 			=> NetworkHelper.SslRemoteCertificateValidate(Log, skipInvalidCertificate, certificate, chain, sslPolicyErrors);
 

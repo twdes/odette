@@ -74,7 +74,6 @@ namespace TecWare.DE.Odette
 	{
 		public static bool SslRemoteCertificateValidate(LoggerProxy log, bool skipInvalidCertificate, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
 		{
-
 			if (sslPolicyErrors == SslPolicyErrors.None)
 				return true;
 
@@ -95,7 +94,7 @@ namespace TecWare.DE.Odette
 				{
 					m.WriteLine("  <null>");
 					// no chance to skip
-					return false;
+					return skipInvalidCertificate;
 				}
 
 				m.WriteLine("Chain:");
