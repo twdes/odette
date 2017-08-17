@@ -2392,8 +2392,11 @@ namespace TecWare.DE.Odette
 			CompareSessionStartFlag(ssid, OdetteCapabilities.SpecialLogic);
 
 			// Check secure authentification
-			if (((ssid.Capabilities ^ capabilities) & OdetteCapabilities.SecureAuthentification) != 0)
+			if ((capabilities & OdetteCapabilities.SecureAuthentification) != 0 // we enforce SecureAthentification
+				&& (ssid.Capabilities & OdetteCapabilities.SecureAuthentification) != 0) // not set, fail
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.SecureAuthenticationRequirementsIncompatible);
+			else
+				capabilities = capabilities | (ssid.Capabilities & OdetteCapabilities.SecureAuthentification);
 
 			version = ssid.Version;
 			bufferCreditSize = ssid.BufferCreditSize;
