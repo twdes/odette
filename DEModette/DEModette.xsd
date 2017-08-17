@@ -187,9 +187,9 @@
 										<xs:documentation>Oscar id of the destination.</xs:documentation>
 									</xs:annotation>
 								</xs:attribute>
-								<xs:attribute name="my" type="CertificateType" use="required">
+								<xs:attribute name="my" type="CertificateType" use="optional">
 									<xs:annotation>
-										<xs:documentation>Private key of my self.</xs:documentation>
+										<xs:documentation>Private key of my self (is optional if the key is in the certificate store).</xs:documentation>
 									</xs:annotation>
 								</xs:attribute>
 								<xs:attribute name="partner" type="CertificateType" use="required">

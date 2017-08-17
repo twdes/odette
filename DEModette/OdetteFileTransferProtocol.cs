@@ -2451,7 +2451,11 @@ namespace TecWare.DE.Odette
 			var randomNumber = CreateChallenge();
 
 			// encrypt with the public key of the partner
-			var encryptedChallenge = EncryptChallenge(randomNumber, item.FindCertificates(fileService.DestinationId, true).FirstOrDefault());
+			var encryptCertificate = item.FindCertificates(fileService.DestinationId, true).FirstOrDefault();
+			if (encryptCertificate == null)
+				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "No or invalid key, to encrypt the challenge.");
+
+			var encryptedChallenge = EncryptChallenge(randomNumber, encryptCertificate);
 			if (encryptedChallenge == null)
 				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "Challenge encryption failed.");
 
@@ -2464,13 +2468,13 @@ namespace TecWare.DE.Odette
 
 		private async Task HandleSecurityChallengeListener()
 		{
-			// certifcate is from destination (private key)
-			var certificates = new X509Certificate2Collection(item.FindCertificates(fileService.DestinationId, false)
-				.Where(c => c.HasPrivateKey && c.PrivateKey.KeyExchangeAlgorithm != null) // force private key
-				.ToArray()
+			// certifcate for the decryption
+			var certificates = new X509Certificate2Collection(
+				item.FindCertificates(fileService.DestinationId, false)
+					.Where(c => c.HasPrivateKey && c.PrivateKey.KeyExchangeAlgorithm != null) // force private key
+					.ToArray()
 			);
-			if (certificates == null || certificates.Count == 0)
-				throw await EndSessionAsync(OdetteEndSessionReasonCode.InvalidChallengeResponse, "No or invalid private key, to encrypt the challenge.");
+			// decrypt will also select from the store
 
 			// authentifcation command challenge
 			var auth = await ReceiveCommandAsync<AuthentificationChallengeCommand>();
