@@ -2466,7 +2466,7 @@ namespace TecWare.DE.Odette
 		{
 			// certifcate is from destination (private key)
 			var certificates = new X509Certificate2Collection(item.FindCertificates(fileService.DestinationId, false)
-				.Where(c => c.HasPrivateKey && c.PrivateKey.KeyExchangeAlgorithm != null) // force: private key
+				.Where(c => c.HasPrivateKey && c.PrivateKey.KeyExchangeAlgorithm != null) // force private key
 				.ToArray()
 			);
 			if (certificates == null || certificates.Count == 0)
@@ -2512,7 +2512,7 @@ namespace TecWare.DE.Odette
 			}
 			catch (Exception e)
 			{
-				Log.Warn("Encrypt of challenge failed.", e);
+				Log.Warn("Encrypt of challenge failed: {0}\n{1}", e.Message, e);
 				return null;
 			}
 		} // func EncryptChallenge
@@ -2529,7 +2529,7 @@ namespace TecWare.DE.Odette
 			}
 			catch (Exception e)
 			{
-				Log.Warn("Decrypt of challenge failed.", e);
+				Log.Warn("Decrypt of challenge failed: {0}\n{1}", e.Message, e);
 				return null;
 			}
 		} // func DecryptChallenge
