@@ -506,13 +506,12 @@ namespace TecWare.DE.Odette
 
 			public OdetteCommand CheckValid(bool outbound)
 			{
-				string error;
-				if (!IsValid(out error))
+				if (!IsValid(out var error))
 				{
 					if (outbound)
 						throw new ArgumentException(String.Format("Invalid command in out buffer ({0}, error: {1}).", GetType().Name, error));
 					else
-						throw new OdetteException(OdetteEndSessionReasonCode.CommandContainedInvalidData, error);
+						throw new OdetteException(OdetteEndSessionReasonCode.CommandContainedInvalidData, String.Format("{0}\ndata: [{2}]{1}", error, Procs.ConvertToString(Data, 0, Math.Min(256, Length)), Length));
 				}
 				return this;
 			} // proc CheckValid
