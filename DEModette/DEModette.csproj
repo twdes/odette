@@ -65,7 +65,7 @@
       <Name>ServerLib</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Core\DESCore\DESCore.csproj">
-      <Project>{67528843-e631-4c05-b6e8-514cc8bec7b6}</Project>
+      <Project>{154f6e88-1eb7-40c9-b5f9-f05ddfb27cad}</Project>
       <Name>DESCore</Name>
     </ProjectReference>
   </ItemGroup>
