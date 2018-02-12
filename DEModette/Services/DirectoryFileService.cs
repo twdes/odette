@@ -30,13 +30,11 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette.Services
 {
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public class DirectoryFileServiceItem : DEConfigLogItem, IOdetteFileServiceFactory
 	{
 		#region -- class FileItem ---------------------------------------------------------
 
-		///////////////////////////////////////////////////////////////////////////////
 		/// <summary></summary>
 		private sealed class FileItem : IOdetteFileDescription
 		{
@@ -46,7 +44,7 @@ namespace TecWare.DE.Odette.Services
 
 			private readonly string virtualFileName;
 			private readonly DateTime fileStamp;
-			private readonly string originator;
+			private readonly string sourceOrDestination;
 
 			private readonly OdetteFileFormat format = OdetteFileFormat.Unstructured;
 			private readonly int maximumRecordSize;
@@ -66,7 +64,7 @@ namespace TecWare.DE.Odette.Services
 
 				this.virtualFileName = file.VirtualFileName;
 				this.fileStamp = file.FileStamp;
-				this.originator = file.Originator;
+				this.sourceOrDestination = file.SourceOrDestination;
 
 				var fiExtended = new FileInfo(GetExtendedFile());
 				var readed = false;
@@ -162,7 +160,7 @@ namespace TecWare.DE.Odette.Services
 						"  Description: {8}"
 					),
 					fileInfo.Name,
-					originator,
+					sourceOrDestination,
 					virtualFileName,
 					fileStamp,
 					format,
@@ -241,7 +239,7 @@ namespace TecWare.DE.Odette.Services
 
 			public string VirtualFileName => virtualFileName;
 			public DateTime FileStamp => fileStamp;
-			public string Originator => originator;
+			public string SourceOrDestination => sourceOrDestination;
 
 			public OdetteFileFormat Format => format;
 			public int MaximumRecordSize => maximumRecordSize;
@@ -970,7 +968,7 @@ namespace TecWare.DE.Odette.Services
 			if (fileDescription.FileStamp == null)
 				throw new ArgumentNullException("FileStamp");
 
-			return fileDescription.Originator + "#" +
+			return fileDescription.SourceOrDestination + "#" +
 				fileDescription.VirtualFileName + "#" +
 				fileDescription.FileStamp.ToString(fileStampFormat, CultureInfo.InvariantCulture);
 		} // func GetFileName

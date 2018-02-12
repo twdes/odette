@@ -772,6 +772,8 @@ namespace TecWare.DE.Odette
 				set { WriteAscii(48, 8, value); }
 			} // prop VirtualFileDatasetName
 
+			string IOdetteFile.SourceOrDestination => Destination;
+
 			public string Destination
 			{
 				get { return ReadAscii(56, 25); }
@@ -1697,7 +1699,7 @@ namespace TecWare.DE.Odette
 				set { WriteAscii(81, 25, value); }
 			} // prop Originator
 
-			string IOdetteFile.Originator => Destination; // destination is the orginal originator
+			string IOdetteFile.SourceOrDestination => Originator; // originator is the orginal destination
 
 			public abstract int ReasonCode { get; }
 			public abstract string ReasonText { get; }
@@ -1828,7 +1830,7 @@ namespace TecWare.DE.Odette
 				set { WriteAscii(76, 25, value); }
 			} // prop Originator
 
-			string IOdetteFile.Originator => Destination; // destination is the orginal originator
+			string IOdetteFile.SourceOrDestination => Destination; // destination is the orginal originator
 
 			public string Creator
 			{
@@ -2584,8 +2586,8 @@ namespace TecWare.DE.Odette
 			sfid.Format = fileDescription?.Format ?? OdetteFileFormat.Unstructured;
 			sfid.RestartPosition = restartLength = RestartLength(sfid.Format, outFile);
 			sfid.MaximumRecordSize = fileDescription?.MaximumRecordSize ?? 0;
-			sfid.Destination = fileService.DestinationId;
-			sfid.Originator = outFile.Name.Originator;
+			sfid.Destination = outFile.Name.SourceOrDestination;
+			sfid.Originator = item.OdetteId;
 
 			// special handling for Rev2
 			if (version == OdetteVersion.Rev20)

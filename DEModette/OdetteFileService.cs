@@ -77,9 +77,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFile ----------------------------------------------------
+	#region -- interface IOdetteFile --------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Basic file description</summary>
 	public interface IOdetteFile
 	{
@@ -87,39 +86,50 @@ namespace TecWare.DE.Odette
 		string VirtualFileName { get; }
 		/// <summary>Time stamp of the file</summary>
 		DateTime FileStamp { get; }
-		/// <summary>Source of the file.</summary>
-		string Originator { get; }
+		/// <summary>Source or destination of the file.</summary>
+		string SourceOrDestination { get; }
 	} // interface IOdetteFile
 
 	#endregion
 
 	#region -- class OdetteFileImmutable ------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Implementation of odette file.</summary>
 	public sealed class OdetteFileImmutable : IOdetteFile
 	{
 		private readonly string virtualFileName;
 		private readonly DateTime fileStamp;
-		private readonly string originator;
+		private readonly string sourceOrDestination;
 
-		public OdetteFileImmutable(string virtualFileName, DateTime fileStamp, string originator)
+		/// <summary></summary>
+		/// <param name="virtualFileName"></param>
+		/// <param name="fileStamp"></param>
+		/// <param name="sourceOrDestination"></param>
+		public OdetteFileImmutable(string virtualFileName, DateTime fileStamp, string sourceOrDestination)
 		{
 			this.virtualFileName = virtualFileName;
 			this.fileStamp = fileStamp;
-			this.originator = originator;
+			this.sourceOrDestination = sourceOrDestination;
 		} // ctor
 
+		/// <summary></summary>
+		/// <returns></returns>
 		public override string ToString()
 			=> FormatFileName(this, "");
 
+		/// <summary></summary>
 		public string VirtualFileName => virtualFileName;
+		/// <summary></summary>
 		public DateTime FileStamp => fileStamp;
-		public string Originator => originator;
+		/// <summary></summary>
+		public string SourceOrDestination => sourceOrDestination;
 
-
+		/// <summary></summary>
+		/// <param name="file"></param>
+		/// <param name="userData"></param>
+		/// <returns></returns>
 		public static string FormatFileName(IOdetteFile file, string userData)
-			=> file.Originator + "/" + file.VirtualFileName + "[userData=" + userData + "]";
+			=> file.SourceOrDestination + "/" + file.VirtualFileName + "[userData=" + userData + "]";
 	} // class OdetteFileImmutable
 
 	#endregion
@@ -179,8 +189,7 @@ namespace TecWare.DE.Odette
 		/// <param name="buf">Buffer to fill</param>
 		/// <param name="offset"></param>
 		/// <param name="count"></param>
-		/// <param name="isEoR">marks a end of the current record or the complete file.</param>
-		/// <returns>Bytes copied in the buffer.</returns>
+		/// <returns>Bytes copied in the buffer. <c>isEoR</c> marks a end of the current record or the complete file.</returns>
 		Task<(int readed, bool isEoR)> ReadAsync(byte[] buf, int offset, int count);
 
 		/// <summary>Transmission failed.</summary>
@@ -382,7 +391,6 @@ namespace TecWare.DE.Odette
 		} // func GetOutFiles
 
 		/// <summary>End to end received for a file.</summary>
-		/// <param name="file"></param>
 		/// <param name="description"></param>
 		public async Task UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description)
 		{

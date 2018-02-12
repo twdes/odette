@@ -10,6 +10,7 @@ Postfach für einen Partner.
 		- recv: Datei wurde vollständig empfangen und validiert
 		- se2e: Bestätigung kann gesendet werden (dieser Status muss durch ein externes Program gesetzt werden)
 		- done: Bestätigung gesendet, Datei wartet auf Bereinigung
+	- Originator is the source (also known as SFID).
 - Datei ATTR enthält XML mit zusätzlichen Information zu Signatur und co.?
 - Zusätzlich für den Status "done" die NERP informationen
 
@@ -23,6 +24,10 @@ Postfach für einen Partner.
 		- we2e: Datei wurde erfolgreich weitergegeben (warte auf EndToEnd)
 		- re2e: EndToEnd Erhalten
 		- done: Wird durch externes System gesetzt (bereit zum Bereinigen, wird nicht von Dienst übernommen)
+	- Originator is the destination (also known as SFID).
+
+SSID -> Start Session Identification
+SFID -> Start File Identification
 
 # Format der Extented Datei
 <oftp>
