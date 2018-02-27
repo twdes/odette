@@ -31,42 +31,51 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette
 {
-	#region -- enum OdetteVersion -------------------------------------------------------
+	#region -- enum OdetteVersion -----------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Odette protocol version</summary>
 	internal enum OdetteVersion
 	{
+		/// <summary>Unknown</summary>
 		Unknown,
+		/// <summary>Version 1.2 (=1)</summary>
 		Rev12,
+		/// <summary>Version 1.3 (=2)</summary>
 		Rev13,
+		/// <summary>Version 1.4 (=4)</summary>
 		Rev14,
+		/// <summary>Version 2.0 (=5)</summary>
 		Rev20
 	} // enum OdetteVersion
 
 	#endregion
 
-	#region -- enum OdetteCapabilities --------------------------------------------------
+	#region -- enum OdetteCapabilities ------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Odette session capabitities</summary>
 	[Flags]
 	public enum OdetteCapabilities
 	{
+		/// <summary>None options</summary>
 		None = 0,
+		/// <summary>Session can send files.</summary>
 		Send = 1,
+		/// <summary>Session can receive files.</summary>
 		Receive = 2,
+		/// <summary>Session supports buffer compressions.</summary>
 		BufferCompression = 4,
+		/// <summary>Session supports file restart.</summary>
 		Restart = 8,
+		/// <summary></summary>
 		SpecialLogic = 16,
+		/// <summary>Session supports secure authentification.</summary>
 		SecureAuthentification = 32
 	} // enum OdetteCapabilities
 
 	#endregion
 
-	#region -- enum OdetteEndSessionReasonCode ------------------------------------------
+	#region -- enum OdetteEndSessionReasonCode ----------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	internal enum OdetteEndSessionReasonCode
 	{
@@ -102,57 +111,79 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- enum OdetteSecurityLevels ------------------------------------------------
+	#region -- enum OdetteSecurityLevels ----------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Odette security levels</summary>
 	[Flags]
 	internal enum OdetteSecurityLevels
 	{
+		/// <summary>No security</summary>
 		None = 0,
+		/// <summary>Encrypted files</summary>
 		Encrypted = 1,
+		/// <summary>Signed files.</summary>
 		Signed = 2,
+		/// <summary>Encrypted and signed.</summary>
 		EncryptedAndSigned = Encrypted | Signed
 	} // enum OdetteSecurityLevels
 
 	#endregion
 
-	#region -- enum OdetteAnswerReason --------------------------------------------------
+	#region -- enum OdetteAnswerReason ------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
+	/// <summary>Odette answer reason for end to end response.</summary>
 	public enum OdetteAnswerReason
 	{
+		/// <summary></summary>
 		None = 0,
+		/// <summary></summary>
 		InvalidFilename = 01,
+		/// <summary></summary>
 		InvalidDestination = 02,
+		/// <summary></summary>
 		InvalidOrigin = 03,
+		/// <summary></summary>
 		StorageRecordFormatNotSupported = 04,
+		/// <summary></summary>
 		MaximumRecordLengthNotSupported = 05,
+		/// <summary></summary>
 		FileSizeIsTooBig = 06,
+		/// <summary></summary>
 		InvalidRecordCount = 10,
+		/// <summary></summary>
 		InvalidByteCount = 11,
+		/// <summary></summary>
 		AccessMethodFailure = 12,
+		/// <summary></summary>
 		DuplicateFile = 13,
+		/// <summary></summary>
 		FileDirectionRefused = 14,
+		/// <summary></summary>
 		CipherSuiteNotSupported = 15,
+		/// <summary></summary>
 		EncryptedFileNotAllowed = 16,
+		/// <summary></summary>
 		UnencryptedFileNotAllowed = 17,
+		/// <summary></summary>
 		CompressionNotAllowed = 18,
+		/// <summary></summary>
 		SignedFileNotAllowed = 19,
+		/// <summary></summary>
 		UnsignedFileNotAllowed = 20,
+		/// <summary></summary>
 		InvalidFileSignature = 21,
+		/// <summary></summary>
 		FileDecryptionFailure = 22,
+		/// <summary></summary>
 		FileDecompressionFailure = 23,
+		/// <summary></summary>
 		UnspecifiedReason = 99
 	} // enum OdetteAnswerReason
 
 	#endregion
 
-	#region -- class OdetteException ----------------------------------------------------
+	#region -- class OdetteException --------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	// <summary></summary>
 	internal class OdetteException : Exception
 	{
 		private readonly OdetteEndSessionReasonCode reasonCode;
@@ -168,9 +199,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteRemoteEndException -------------------------------------------
+	#region -- class OdetteRemoteEndException -----------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Is thrown if the remote host, closes the connection.</summary>	
 	internal class OdetteRemoteEndException : OdetteException
 	{
@@ -182,9 +212,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteAbortException -----------------------------------------------
+	#region -- class OdetteAbortException ---------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Is thrown if the session is finished normally.</summary>	
 	internal class OdetteAbortException : OdetteException
 	{
@@ -196,14 +225,20 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteFileServiceException -----------------------------------------
+	#region -- class OdetteFileServiceException ---------------------------------------
 
+	/// <summary>Exception from the file service.</summary>
 	public class OdetteFileServiceException : Exception
 	{
 		private readonly OdetteAnswerReason reasonCode;
 		private readonly string reasonText;
 		private readonly bool retryFlag;
 
+		/// <summary></summary>
+		/// <param name="reasonCode"></param>
+		/// <param name="reasonText"></param>
+		/// <param name="retryFlag"></param>
+		/// <param name="innerException"></param>
 		public OdetteFileServiceException(OdetteAnswerReason reasonCode, string reasonText = null, bool retryFlag = false, Exception innerException = null)
 			: base(reasonText ?? OdetteFtp.GetReasonText(reasonCode), innerException)
 		{
@@ -212,17 +247,18 @@ namespace TecWare.DE.Odette
 			this.reasonText = reasonText;
 		} // ctor
 
+		/// <summary></summary>
 		public OdetteAnswerReason ReasonCode => reasonCode;
+		/// <summary></summary>
 		public string ReasonText => reasonText;
+		/// <summary></summary>
 		public bool RetryFlag => retryFlag;
 	} // class OdetteFileServiceException
 
 	#endregion
 
-	#region -- class OdetteFtp ----------------------------------------------------------
+	#region -- class OdetteFtp --------------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
 	internal sealed class OdetteFtp
 	{
 		internal struct CipherSuit
@@ -243,16 +279,15 @@ namespace TecWare.DE.Odette
 			new CipherSuit() { Symetric = "AES_256_CBC", Asymetric = "RSA_PKCS1_15", Hash = "SHA512" }
 		};
 
-		#region -- class OdetteCommand ----------------------------------------------------
+		#region -- class OdetteCommand ------------------------------------------------
 
-		///////////////////////////////////////////////////////////////////////////////
 		/// <summary>Gives a command buffer a structure.</summary>
 		private abstract class OdetteCommand
 		{
 			private readonly byte[] buffer;
 			private int length;
 
-			#region -- Ctor/Dtor --------------------------------------------------------------
+			#region -- Ctor/Dtor ------------------------------------------------------
 
 			protected OdetteCommand(byte[] buffer, int length)
 			{
@@ -313,7 +348,7 @@ namespace TecWare.DE.Odette
 
 			#endregion
 
-			#region -- Read primitives --------------------------------------------------------
+			#region -- Read primitives ------------------------------------------------
 
 			protected string ReadAscii(int offset, int length)
 				=> Encoding.ASCII.GetString(buffer, offset, length).TrimEnd(' ');
@@ -372,7 +407,7 @@ namespace TecWare.DE.Odette
 
 			#endregion
 
-			#region -- Write primitives -------------------------------------------------------
+			#region -- Write primitives -----------------------------------------------
 
 			private byte GetLetter(char c)
 			{
@@ -502,7 +537,7 @@ namespace TecWare.DE.Odette
 
 			#endregion
 
-			#region -- Validate ---------------------------------------------------------------
+			#region -- Validate -------------------------------------------------------
 
 			public OdetteCommand CheckValid(bool outbound)
 			{
@@ -536,7 +571,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartSessionReadyMessageCommand ----------------------------------
+		#region -- class StartSessionReadyMessageCommand ------------------------------
 
 		private sealed class StartSessionReadyMessageCommand : OdetteCommand
 		{
@@ -577,7 +612,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartSessionCommand ----------------------------------------------
+		#region -- class StartSessionCommand ------------------------------------------
 
 		private sealed class StartSessionCommand : OdetteCommand
 		{
@@ -744,7 +779,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFileCommand -------------------------------------------------
+		#region -- class StartFileCommand ---------------------------------------------
 
 		private abstract class StartFileCommand : OdetteCommand, IOdetteFileDescription
 		{
@@ -844,7 +879,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFileCommandV1 -----------------------------------------------
+		#region -- class StartFileCommandV1 -------------------------------------------
 
 		private sealed class StartFileCommandV1 : StartFileCommand
 		{
@@ -889,7 +924,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFileCommandV2 -----------------------------------------------
+		#region -- class StartFileCommandV2 -------------------------------------------
 
 		private sealed class StartFileCommandV2 : StartFileCommand
 		{
@@ -959,7 +994,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFilePositiveAnswerCommand -----------------------------------
+		#region -- class StartFilePositiveAnswerCommand -------------------------------
 
 		private abstract class StartFilePositiveAnswerCommand : OdetteCommand
 		{
@@ -974,7 +1009,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFilePositiveAnswerCommandV1 ---------------------------------
+		#region -- class StartFilePositiveAnswerCommandV1 -----------------------------
 
 		private sealed class StartFilePositiveAnswerCommandV1 : StartFilePositiveAnswerCommand
 		{
@@ -998,7 +1033,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFilePositiveAnswerCommandV2 ---------------------------------
+		#region -- class StartFilePositiveAnswerCommandV2 -----------------------------
 
 		private sealed class StartFilePositiveAnswerCommandV2 : StartFilePositiveAnswerCommand
 		{
@@ -1022,7 +1057,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFileNegativeAnswerCommand -----------------------------------
+		#region -- class StartFileNegativeAnswerCommand -------------------------------
 
 		private abstract class StartFileNegativeAnswerCommand : OdetteCommand
 		{
@@ -1056,7 +1091,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFileNegativeAnswerCommandV1 ---------------------------------
+		#region -- class StartFileNegativeAnswerCommandV1 -----------------------------
 
 		private sealed class StartFileNegativeAnswerCommandV1 : StartFileNegativeAnswerCommand
 		{
@@ -1079,7 +1114,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class StartFileNegativeAnswerCommandV2 ---------------------------------
+		#region -- class StartFileNegativeAnswerCommandV2 -----------------------------
 
 		private sealed class StartFileNegativeAnswerCommandV2 : StartFileNegativeAnswerCommand
 		{
@@ -1108,7 +1143,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class DataCommand ------------------------------------------------------
+		#region -- class DataCommand --------------------------------------------------
 
 		private const byte EOF = 0x80;
 		private const byte CF = 0x40;
@@ -1316,7 +1351,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class SetCreditCommand -------------------------------------------------
+		#region -- class SetCreditCommand ---------------------------------------------
 
 		private sealed class SetCreditCommand : OdetteCommand
 		{
@@ -1337,7 +1372,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFileCommand ---------------------------------------------------
+		#region -- class EndFileCommand -----------------------------------------------
 
 		private abstract class EndFileCommand : OdetteCommand
 		{
@@ -1354,7 +1389,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFileCommandV1 -------------------------------------------------
+		#region -- class EndFileCommandV1 ---------------------------------------------
 
 		private sealed class EndFileCommandV1 : EndFileCommand
 		{
@@ -1384,7 +1419,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFileCommandV2 -------------------------------------------------
+		#region -- class EndFileCommandV2 ---------------------------------------------
 
 		private sealed class EndFileCommandV2 : EndFileCommand
 		{
@@ -1414,7 +1449,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFilePositiveAnswerCommand -------------------------------------
+		#region -- class EndFilePositiveAnswerCommand ---------------------------------
 
 		private sealed class EndFilePositiveAnswerCommand : OdetteCommand
 		{
@@ -1441,7 +1476,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFileNegativeAnswerCommand -------------------------------------
+		#region -- class EndFileNegativeAnswerCommand ---------------------------------
 
 		private abstract class EndFileNegativeAnswerCommand : OdetteCommand
 		{
@@ -1463,7 +1498,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFileNegativeAnswerCommandV1 -----------------------------------
+		#region -- class EndFileNegativeAnswerCommandV1 -------------------------------
 
 		private sealed class EndFileNegativeAnswerCommandV1 : EndFileNegativeAnswerCommand
 		{
@@ -1489,7 +1524,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndFileNegativeAnswerCommandV2 -----------------------------------
+		#region -- class EndFileNegativeAnswerCommandV2 -------------------------------
 
 		private sealed class EndFileNegativeAnswerCommandV2 : EndFileNegativeAnswerCommand
 		{
@@ -1521,7 +1556,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndSessionCommand ------------------------------------------------
+		#region -- class EndSessionCommand --------------------------------------------
 
 		private abstract class EndSessionCommand : OdetteCommand
 		{
@@ -1564,7 +1599,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndSessionCommandV1 ----------------------------------------------
+		#region -- class EndSessionCommandV1 ------------------------------------------
 
 		private sealed class EndSessionCommandV1 : EndSessionCommand
 		{
@@ -1601,7 +1636,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndSessionCommandV2 ----------------------------------------------
+		#region -- class EndSessionCommandV2 ------------------------------------------
 
 		private sealed class EndSessionCommandV2 : EndSessionCommand
 		{
@@ -1644,7 +1679,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class ChangeDirectionCommand -------------------------------------------
+		#region -- class ChangeDirectionCommand ---------------------------------------
 
 		private sealed class ChangeDirectionCommand : OdetteCommand
 		{
@@ -1664,7 +1699,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndEndResponseCommand --------------------------------------------
+		#region -- class EndEndResponseCommand ----------------------------------------
 
 		private abstract class EndEndResponseCommand : OdetteCommand, IOdetteFile, IOdetteFileEndToEndDescription
 		{
@@ -1711,7 +1746,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndEndResponseCommandV1 ------------------------------------------
+		#region -- class EndEndResponseCommandV1 --------------------------------------
 
 		private sealed class EndEndResponseCommandV1 : EndEndResponseCommand
 		{
@@ -1739,7 +1774,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class EndEndResponseCommandV2 ------------------------------------------
+		#region -- class EndEndResponseCommandV2 --------------------------------------
 
 		private sealed class EndEndResponseCommandV2 : EndEndResponseCommand
 		{
@@ -1787,7 +1822,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class NegativeEndResponseCommandV2 -------------------------------------
+		#region -- class NegativeEndResponseCommandV2 ---------------------------------
 
 		private sealed class NegativeEndResponseCommandV2 : OdetteCommand, IOdetteFile, IOdetteFileEndToEndDescription
 		{
@@ -1867,7 +1902,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class ReadyToReceiveCommand --------------------------------------------
+		#region -- class ReadyToReceiveCommand ----------------------------------------
 
 		private sealed class ReadyToReceiveCommand : OdetteCommand
 		{
@@ -1887,7 +1922,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class SecurityChangeDirectionCommand -----------------------------------
+		#region -- class SecurityChangeDirectionCommand -------------------------------
 
 		private sealed class SecurityChangeDirectionCommand : OdetteCommand
 		{
@@ -1907,7 +1942,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class AuthentificationChallengeCommand ---------------------------------
+		#region -- class AuthentificationChallengeCommand -----------------------------
 
 		private sealed class AuthentificationChallengeCommand : OdetteCommand
 		{
@@ -1937,7 +1972,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- class AuthentificationResponseCommand ----------------------------------
+		#region -- class AuthentificationResponseCommand ------------------------------
 
 		private sealed class AuthentificationResponseCommand : OdetteCommand
 		{
@@ -2001,7 +2036,7 @@ namespace TecWare.DE.Odette
 		private byte[] receiveBuffer;
 		private byte[] sendBuffer;
 
-		#region -- Ctor/Dtor --------------------------------------------------------------
+		#region -- Ctor/Dtor ----------------------------------------------------------
 
 		public OdetteFtp(OdetteFileTransferProtocolItem item, IOdetteFtpChannel channel)
 		{
@@ -2031,7 +2066,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- Primitives - Error -----------------------------------------------------
+		#region -- Primitives - Error -------------------------------------------------
 
 		/// <summary>Creates a exception, if a unsupported packet is received.</summary>
 		/// <param name="command"></param>
@@ -2113,7 +2148,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- Receive/Send -----------------------------------------------------------
+		#region -- Receive/Send -------------------------------------------------------
 
 		private T CreateEmptyCommand<T>()
 				where T : OdetteCommand
@@ -2267,7 +2302,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- InitaitorSessionStartAsync ---------------------------------------------
+		#region -- InitaitorSessionStartAsync -----------------------------------------
 
 		private void LogSessionInfo()
 		{
@@ -2354,7 +2389,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- ResponderSessionStartAsync ---------------------------------------------
+		#region -- ResponderSessionStartAsync -----------------------------------------
 
 		public async Task ResponderSessionStartAsync()
 		{
@@ -2447,7 +2482,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- Secure Authentification ------------------------------------------------
+		#region -- Secure Authentification --------------------------------------------
 
 		private async Task HandleSecurityChallengeSpeaker()
 		{
@@ -2547,7 +2582,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- SendFiles --------------------------------------------------------------
+		#region -- SendFiles ----------------------------------------------------------
 
 		private long RestartLength(OdetteFileFormat format, IOdetteFileReader outFile)
 		{
@@ -2804,7 +2839,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- Receive Files ----------------------------------------------------------
+		#region -- Receive Files ------------------------------------------------------
 
 		private async Task ReceiveFileAsync(StartFileCommand startFileCommand, bool changeDirectionRequest)
 		{
@@ -3003,7 +3038,7 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- Run --------------------------------------------------------------------
+		#region -- Run ----------------------------------------------------------------
 
 		public async Task RunAsync(bool initiator)
 		{
@@ -3070,7 +3105,7 @@ namespace TecWare.DE.Odette
 		/// <summary></summary>
 		public IOdetteFtpChannel Channel => channel;
 
-		// -- GetReasonText -------------------------------------------------------
+		// -- GetReasonText ---------------------------------------------------
 
 		internal static string GetReasonText(OdetteEndSessionReasonCode reasonCode)
 		{
@@ -3085,9 +3120,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteFileTransferProtocolItem -------------------------------------
+	#region -- class OdetteFileTransferProtocolItem -----------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public class OdetteFileTransferProtocolItem : DEConfigLogItem
 	{
@@ -3099,8 +3133,11 @@ namespace TecWare.DE.Odette
 
 		private readonly DEList<OdetteFtp> activeProtocols;
 
-		#region -- Ctor/Dtor --------------------------------------------------------------
+		#region -- Ctor/Dtor ----------------------------------------------------------
 
+		/// <summary></summary>
+		/// <param name="sp"></param>
+		/// <param name="name"></param>
 		public OdetteFileTransferProtocolItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
@@ -3112,6 +3149,8 @@ namespace TecWare.DE.Odette
 			PublishItem(new DEConfigItemPublicAction("debugOff") { DisplayName = "Debug(off)" });
 		} // ctor
 
+		/// <summary></summary>
+		/// <param name="disposing"></param>
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
@@ -3125,26 +3164,23 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- Protocol List ----------------------------------------------------------
+		#region -- Protocol List ------------------------------------------------------
 
 		private void AddProtocol(OdetteFtp oftp)
-		{
-			activeProtocols.Add(oftp);
-		} // proc RemoveProtocol
-
+			=> activeProtocols.Add(oftp);
+		
 		private void RemoveProtocol(OdetteFtp oftp)
-		{
-			activeProtocols.Remove(oftp);
-		} // proc RemoveProtocol
-
+			=> activeProtocols.Remove(oftp);
+		
+		/// <summary></summary>
+		/// <param name="channelName"></param>
+		/// <returns></returns>
 		public bool IsActiveProtocol(string channelName)
-		{
-			return activeProtocols.FindIndex(o => o.Channel.Name == channelName) >= 0;
-		} // func IsActiveProtocol
-
+			=> activeProtocols.FindIndex(o => o.Channel.Name == channelName) >= 0;
+		
 		#endregion
 
-		#region -- FindCertificates -------------------------------------------------------
+		#region -- FindCertificates ---------------------------------------------------
 
 		/// <summary>Finds the certificates for the destination.</summary>
 		/// <param name="destinationId"></param>
@@ -3174,8 +3210,11 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- StartProtocolAsync, CreateFileService ----------------------------------
+		#region -- StartProtocolAsync, CreateFileService ------------------------------
 
+		/// <summary></summary>
+		/// <param name="channel"></param>
+		/// <param name="initiator"></param>
 		public void StartProtocol(IOdetteFtpChannel channel, bool initiator)
 		{
 			var protocol = new OdetteFtp(this, channel);
@@ -3230,10 +3269,13 @@ namespace TecWare.DE.Odette
 			return new XElement("return", new XAttribute("debug", debugCommands));
 		} // func SetDebugCommands
 
+		/// <summary></summary>
 		public string OdetteId => Config.GetAttribute("odetteId", String.Empty);
+		/// <summary></summary>
 		public string OdettePassword => Config.GetAttribute("odettePassword", String.Empty);
 
 
+		/// <summary></summary>
 		[
 		PropertyName("tw_oftp_debug"),
 		DisplayName("Debug Commands"),

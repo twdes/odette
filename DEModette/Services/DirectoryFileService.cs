@@ -33,9 +33,8 @@ namespace TecWare.DE.Odette.Services
 	/// <summary></summary>
 	public class DirectoryFileServiceItem : DEConfigLogItem, IOdetteFileServiceFactory
 	{
-		#region -- class FileItem ---------------------------------------------------------
+		#region -- class FileItem -----------------------------------------------------
 
-		/// <summary></summary>
 		private sealed class FileItem : IOdetteFileDescription
 		{
 			private readonly WeakReference<DirectoryFileServiceItem> notifyTarget;
@@ -252,7 +251,7 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- class FileEndToEnd -----------------------------------------------------
+		#region -- class FileEndToEnd -------------------------------------------------
 
 		private sealed class FileEndToEnd : IOdetteFileEndToEnd
 		{
@@ -282,7 +281,7 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- class OdetteFileStream -------------------------------------------------
+		#region -- class OdetteFileStream ---------------------------------------------
 
 		private abstract class OdetteFileStream : IOdetteFileWriter, IOdetteFileReader, IOdetteFilePosition, IDisposable
 		{
@@ -290,7 +289,7 @@ namespace TecWare.DE.Odette.Services
 			private readonly bool readOnly;
 			private FileStream stream = null;
 
-			#region -- Ctor/Dtor ------------------------------------------------------------
+			#region -- Ctor/Dtor ------------------------------------------------------
 
 			public OdetteFileStream(FileItem fileItem, bool readOnly)
 			{
@@ -315,7 +314,7 @@ namespace TecWare.DE.Odette.Services
 
 			#endregion
 
-			#region -- Write/Read/Seek ------------------------------------------------------
+			#region -- Write/Read/Seek ------------------------------------------------
 
 			public Task WriteAsync(byte[] buf, int offset, int count, bool isEoR)
 			{
@@ -355,7 +354,7 @@ namespace TecWare.DE.Odette.Services
 
 			#endregion
 
-			#region -- Commit/Transmission State --------------------------------------------
+			#region -- Commit/Transmission State --------------------------------------
 
 			public async Task CommitFileAsync(long recordCount, long unitCount)
 			{
@@ -443,9 +442,8 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- class OdetteFileStreamUnstructured -------------------------------------
+		#region -- class OdetteFileStreamUnstructured ---------------------------------
 
-		///////////////////////////////////////////////////////////////////////////////
 		/// <summary>Controls text and unstructured files.</summary>
 		private sealed class OdetteFileStreamUnstructured : OdetteFileStream
 		{
@@ -478,9 +476,8 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- class OdetteFileStreamFixed --------------------------------------------
+		#region -- class OdetteFileStreamFixed ----------------------------------------
 
-		///////////////////////////////////////////////////////////////////////////////
 		/// <summary>Controls fixed record length streams.</summary>
 		private sealed class OdetteFileStreamFixed : OdetteFileStream
 		{
@@ -535,9 +532,8 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- class OdetteFileStreamVariable -----------------------------------------
+		#region -- class OdetteFileStreamVariable -------------------------------------
 
-		///////////////////////////////////////////////////////////////////////////////
 		/// <summary>Controls variable record length streams.</summary>
 		private sealed class OdetteFileStreamVariable : OdetteFileStream
 		{
@@ -661,10 +657,8 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- class FileServiceSession -----------------------------------------------
+		#region -- class FileServiceSession -------------------------------------------
 
-		///////////////////////////////////////////////////////////////////////////////
-		/// <summary></summary>
 		private sealed class FileServiceSession : IOdetteFileService
 		{
 			private readonly int sessionId;
@@ -810,13 +804,18 @@ namespace TecWare.DE.Odette.Services
 		private int priority;
 		private int lastSessionId = 0;
 
-		#region -- Ctor/Dtor/Config -------------------------------------------------------
+		#region -- Ctor/Dtor/Config ---------------------------------------------------
 
+		/// <summary></summary>
+		/// <param name="sp"></param>
+		/// <param name="name"></param>
 		public DirectoryFileServiceItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
 		} // ctor
 
+		/// <summary></summary>
+		/// <param name="config"></param>
 		protected override void OnBeginReadConfiguration(IDEConfigLoading config)
 		{
 			base.OnBeginReadConfiguration(config);
@@ -830,6 +829,8 @@ namespace TecWare.DE.Odette.Services
 			ValidateDirectory(config.ConfigNew, "out", true);
 		} // OnBeginReadConfiguration
 
+		/// <summary></summary>
+		/// <param name="config"></param>
 		protected override void OnEndReadConfiguration(IDEConfigLoading config)
 		{
 			base.OnEndReadConfiguration(config);
@@ -849,7 +850,7 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- CreateFileService Session ----------------------------------------------
+		#region -- CreateFileService Session ------------------------------------------
 
 		private int GetSessionId()
 			=> Interlocked.Increment(ref lastSessionId);
@@ -879,7 +880,7 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- Script Notify ----------------------------------------------------------
+		#region -- Script Notify ------------------------------------------------------
 
 		private void OnSessionStart()
 		{
@@ -934,7 +935,7 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		#region -- Directory Helper -------------------------------------------------------
+		#region -- Directory Helper ---------------------------------------------------
 
 		/// <summary>Checks if the file is receivable.</summary>
 		/// <param name="fileDescription"></param>

@@ -21,23 +21,23 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette
 {
-	#region -- class OdetteNetworkException ---------------------------------------------
+	#region -- class OdetteNetworkException -------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public class OdetteNetworkException : Exception
 	{
+		/// <summary></summary>
+		/// <param name="message"></param>
 		public OdetteNetworkException(string message)
 			: base(message)
 		{
 		} // ctor
-  } // class OdetteNetworkException
+	} // class OdetteNetworkException
 
 	#endregion
 
-	#region -- interface IOdetteFtpChannel ----------------------------------------------
+	#region -- interface IOdetteFtpChannel --------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public interface IOdetteFtpChannel : IDisposable
 	{
@@ -65,7 +65,7 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class NetworkHelper ------------------------------------------------------
+	#region -- class NetworkHelper ----------------------------------------------------
 
 	internal static class NetworkHelper
 	{

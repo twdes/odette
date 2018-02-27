@@ -21,9 +21,8 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette
 {
-	#region -- enum OdetteFileFormat ----------------------------------------------------
+	#region -- enum OdetteFileFormat --------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public enum OdetteFileFormat
 	{
@@ -39,9 +38,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- enum OdetteOutFileState --------------------------------------------------
+	#region -- enum OdetteOutFileState ------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public enum OdetteOutFileState
 	{
@@ -59,9 +57,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- enum OdetteOutFileState --------------------------------------------------
+	#region -- enum OdetteOutFileState ------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public enum OdetteInFileState
 	{
@@ -92,7 +89,7 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteFileImmutable ------------------------------------------------
+	#region -- class OdetteFileImmutable ----------------------------------------------
 
 	/// <summary>Implementation of odette file.</summary>
 	public sealed class OdetteFileImmutable : IOdetteFile
@@ -134,9 +131,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileDescription -----------------------------------------
+	#region -- interface IOdetteFileDescription ---------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Description of the file format (optional).</summary>
 	public interface IOdetteFileDescription : IOdetteFile
 	{
@@ -154,8 +150,9 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileWriter ----------------------------------------------
+	#region -- interface IOdetteFileWriter --------------------------------------------
 
+	/// <summary></summary>
 	public interface IOdetteFileWriter : IDisposable
 	{
 		/// <summary>Writes data to the target file.</summary>
@@ -179,9 +176,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileReader ----------------------------------------------
+	#region -- interface IOdetteFileReader --------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Reads a file from the file service.</summary>
 	public interface IOdetteFileReader : IDisposable
 	{
@@ -213,9 +209,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFilePosition --------------------------------------------
+	#region -- interface IOdetteFilePosition ------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Extention for the IOdetteFileReader or IOdetteFileWrite to change
 	/// the current read or write position.</summary>
 	public interface IOdetteFilePosition
@@ -227,9 +222,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileEndToEndDescription ---------------------------------
+	#region -- interface IOdetteFileEndToEndDescription -------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Description of a end to end message.</summary>
 	public interface IOdetteFileEndToEndDescription
 	{
@@ -246,9 +240,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileEndToEnd --------------------------------------------
+	#region -- interface IOdetteFileEndToEnd ------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Implements a end to end return of the file service.</summary>
 	public interface IOdetteFileEndToEnd : IOdetteFileEndToEndDescription
 	{
@@ -258,14 +251,14 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileService ---------------------------------------------
+	#region -- interface IOdetteFileService -------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Implements a file service session for oftp.</summary>
 	public interface IOdetteFileService : IDisposable
 	{
 		/// <summary>Creates a new file in the service.</summary>
 		/// <param name="file">Description or the file name. If the description is missing, the file will be handled as a normal binary file.</param>
+		/// <param name="userData"></param>
 		/// <returns></returns>
 		Task<IOdetteFileWriter> CreateInFileAsync(IOdetteFile file, string userData);
 		/// <summary>List of end to end messages, that need to send.</summary>
@@ -293,9 +286,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- interface IOdetteFileServiceFactory --------------------------------------
+	#region -- interface IOdetteFileServiceFactory ------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary></summary>
 	public interface IOdetteFileServiceFactory
 	{
@@ -309,9 +301,8 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- class OdetteFileService --------------------------------------------------
+	#region -- class OdetteFileService ------------------------------------------------
 
-	///////////////////////////////////////////////////////////////////////////////
 	/// <summary>Implements a file service that host all collected file service
 	/// sessions for the current destination.</summary>
 	internal sealed class OdetteFileService : IDisposable
@@ -320,7 +311,7 @@ namespace TecWare.DE.Odette
 		private readonly string destinationId;
 		private readonly IOdetteFileService[] services;
 
-		#region -- Ctor/Dtor --------------------------------------------------------------
+		#region -- Ctor/Dtor ----------------------------------------------------------
 
 		public OdetteFileService(IServiceProvider sp, string destinationId, string password)
 		{
@@ -355,10 +346,10 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		#region -- File service proxy implementation --------------------------------------
+		#region -- File service proxy implementation ----------------------------------
 
 		/// <summary>Create/Overrides/Resumes a new odette file, to receive.</summary>
-		/// <param name="fileDescription"></param>
+		/// <param name="file"></param>
 		/// <param name="userData"></param>
 		/// <returns></returns>
 		public async Task<IOdetteFileWriter> CreateInFileAsync(IOdetteFile file, string userData)
