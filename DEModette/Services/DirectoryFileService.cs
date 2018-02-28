@@ -836,7 +836,7 @@ namespace TecWare.DE.Odette.Services
 			base.OnEndReadConfiguration(config);
 
 			// read the attributes
-			var x = new XConfigNode(Server.Configuration[config.ConfigNew.Name], config.ConfigNew);
+			var x = XConfigNode.Create(Server.Configuration, config.ConfigNew);
 
 			this.destinationId = x.GetAttribute<string>("destination").ToUpper();
 			this.priority = x.GetAttribute<int>("priority");
