@@ -792,7 +792,7 @@ namespace TecWare.DE.Odette.Services
 
 		#endregion
 
-		internal const string fileSelectorRegEx = @"^([A-Za-z0-9\s\-]{1,25})#([A-Za-z0-9\/\-\.\&\(\)\s]{1,26})#(\d{18})\.?.*";
+		internal const string fileSelectorRegEx = @"^([A-Za-z0-9\s\-]{1,25})#([A-Za-z0-9_\/\-\.\&\(\)\s]{1,26})#(\d{18})\.?.*";
 
 		private const string fileStampFormat = "yyyyMMddHHmmssffff";
 
