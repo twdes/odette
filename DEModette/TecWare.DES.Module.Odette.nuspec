@@ -24,6 +24,6 @@
 		<file src="bin\Release\DEM.Odette.pdb" target="lib\net47" />
 		<file src="bin\Release\DEM.Odette.xml" target="lib\net47" />
 
-		<file src="DEModette.xsd" target="content\Schema\Configuration" />
+		<file src="DEModette.xsd" target="content\Schema" />
 	</files>
 </package>
