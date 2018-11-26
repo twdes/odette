@@ -2856,8 +2856,7 @@ namespace TecWare.DE.Odette
 					if (startFileCommand.Destination != item.OdetteId)
 						throw new OdetteFileServiceException(OdetteAnswerReason.InvalidDestination, String.Format("Destination '{0}' is invalid (expected: {1}).", startFileCommand.Destination, item.OdetteId), false);
 
-					var cmd2 = startFileCommand as StartFileCommandV2;
-					if (cmd2 != null) // i support only level Version 1
+					if (startFileCommand is StartFileCommandV2 cmd2) // i support only level Version 1
 					{
 						if (cmd2.SecurityLevel != OdetteSecurityLevels.None)
 							throw new OdetteFileServiceException(OdetteAnswerReason.EncryptedFileNotAllowed);
@@ -2881,22 +2880,21 @@ namespace TecWare.DE.Odette
 						(StartFileNegativeAnswerCommand)CreateEmptyCommand<StartFileNegativeAnswerCommandV2>() :
 						(StartFileNegativeAnswerCommand)CreateEmptyCommand<StartFileNegativeAnswerCommandV1>();
 
-					var e2 = e as OdetteFileServiceException;
-					if (e2 == null)
-					{
-						sfna.AnswerReason = OdetteAnswerReason.UnspecifiedReason;
-						sfna.ReasonText = e.Message;
-						sfna.RetryFlag = true;
-
-						m.WriteException(e);
-					}
-					else
+					if (e is OdetteFileServiceException e2)
 					{
 						sfna.AnswerReason = e2.ReasonCode;
 						sfna.ReasonText = e2.ReasonText;
 						sfna.RetryFlag = e2.RetryFlag;
 
 						m.WriteWarning(e2);
+					}
+					else
+					{
+						sfna.AnswerReason = OdetteAnswerReason.UnspecifiedReason;
+						sfna.ReasonText = e.Message;
+						sfna.RetryFlag = true;
+
+						m.WriteException(e);
 					}
 
 					await SendCommandAsync(sfna);
@@ -2914,8 +2912,7 @@ namespace TecWare.DE.Odette
 					if (startFileCommand.RestartPosition > 0)
 					{
 						// check for restart
-						var filePosition = newFile as IOdetteFilePosition;
-						if (filePosition == null || (capabilities & OdetteCapabilities.Restart) == 0)
+						if (!(newFile is IOdetteFilePosition filePosition) || (capabilities & OdetteCapabilities.Restart) == 0)
 							sfpa.RestartPosition = 0;
 						else
 							sfpa.RestartPosition = await filePosition.SeekAsync(startFileCommand.RestartPosition);
@@ -2969,20 +2966,19 @@ namespace TecWare.DE.Odette
 									(EndFileNegativeAnswerCommand)CreateEmptyCommand<EndFileNegativeAnswerCommandV2>() :
 									(EndFileNegativeAnswerCommand)CreateEmptyCommand<EndFileNegativeAnswerCommandV1>();
 
-								var e2 = e as OdetteFileServiceException;
-								if (e2 == null)
-								{
-									cmd.AnswerReason = OdetteAnswerReason.UnspecifiedReason;
-									cmd.ReasonText = e.Message;
-
-									m.WriteException(e);
-								}
-								else
+								if (e is OdetteFileServiceException e2)
 								{
 									cmd.AnswerReason = e2.ReasonCode;
 									cmd.ReasonText = e2.ReasonText;
 
 									m.WriteWarning(e2);
+								}
+								else
+								{
+									cmd.AnswerReason = OdetteAnswerReason.UnspecifiedReason;
+									cmd.ReasonText = e.Message;
+
+									m.WriteException(e);
 								}
 
 								await SendCommandAsync(cmd);
