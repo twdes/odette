@@ -68,7 +68,7 @@ namespace TecWare.DE.Odette.Network
 			else
 			{
 				Log.Info("Try to locate certificate: {0}", useSsl);
-				serverCertificate = ProcsDE.FindCertificate(useSsl).FirstOrDefault();
+				serverCertificate = (from crt in ProcsDE.FindCertificate(useSsl) orderby crt.NotAfter descending select crt).FirstOrDefault();
 				if (serverCertificate == null)
 					throw new ArgumentException("Server certificate not found.");
 				Log.Info("Locate certificate: {0} {1}", serverCertificate.Thumbprint, serverCertificate.Subject);
