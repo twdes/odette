@@ -23,11 +23,11 @@
 		<None Remove="DEModette.xsd" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="DEModette.xsd">
+		<EmbeddedResource Include="DEModette.xsd">
 			<Pack>true</Pack>
 			<PackagePath>content\Schema</PackagePath>
-		</Content>
-  </ItemGroup>
+		</EmbeddedResource>
+	</ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -61,8 +61,5 @@
     <None Include="..\Readme.md">
       <Link>Readme.md</Link>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
