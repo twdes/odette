@@ -838,14 +838,14 @@ namespace TecWare.DE.Odette.Services
 			// read the attributes
 			var x = XConfigNode.Create(Server.Configuration, config.ConfigNew);
 
-			this.destinationId = x.GetAttribute<string>("destination").ToUpper();
-			this.priority = x.GetAttribute<int>("priority");
+			destinationId = x.GetAttribute<string>("destination").ToUpper();
+			priority = x.GetAttribute<int>("priority");
 
-			this.fileNameFilter = x.GetAttribute<string>("inFilter").Split(new char[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+			fileNameFilter = x.GetAttribute<string[]>("inFilter");
 
 			// set directories
-			this.directoryIn = x.GetAttribute<DirectoryInfo>("in");
-			this.directoryOut = x.GetAttribute<DirectoryInfo>("out");
+			directoryIn = x.GetAttribute<DirectoryInfo>("in");
+			directoryOut = x.GetAttribute<DirectoryInfo>("out");
 		} // proc OnEndReadConfiguration
 
 		#endregion

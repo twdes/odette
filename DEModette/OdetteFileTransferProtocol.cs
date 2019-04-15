@@ -2872,6 +2872,8 @@ namespace TecWare.DE.Odette
 					}
 
 					newFile = await fileService.CreateInFileAsync(startFileCommand, startFileCommand.UserData); // add the file
+					if (newFile == null)
+						throw new OdetteFileServiceException(OdetteAnswerReason.UnspecifiedReason, "File could not created.", false);
 					m.WriteLine("File service accepts the file.");
 				}
 				catch (Exception e)
@@ -3139,7 +3141,7 @@ namespace TecWare.DE.Odette
 		{
 			threadProtocol = new DEThread(this, "Protocol", null); // start a thread to handle the protocol
 
-			this.activeProtocols = new DEList<OdetteFtp>(this, "tw_protocols", "Protocols");
+			PublishItem(activeProtocols = new DEList<OdetteFtp>(this, "tw_protocols", "Protocols"));
 
 			PublishItem(new DEConfigItemPublicAction("debugOn") { DisplayName = "Debug(on)" });
 			PublishItem(new DEConfigItemPublicAction("debugOff") { DisplayName = "Debug(off)" });
