@@ -53,6 +53,7 @@
       <Project>{67528843-e631-4c05-b6e8-514cc8bec7b6}</Project>
       <Name>DESCore</Name>
     </ProjectReference>
+    <ProjectReference Include="..\DEModette.Core\DEModette.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\Server\des.licenseheader">

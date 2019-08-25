@@ -659,7 +659,7 @@ namespace TecWare.DE.Odette.Services
 
 		#region -- class FileServiceSession -------------------------------------------
 
-		private sealed class FileServiceSession : IOdetteFileService
+		private sealed class FileServiceSession : IOdetteFileServiceItem
 		{
 			private readonly int sessionId;
 			private readonly DirectoryFileServiceItem service;
@@ -855,7 +855,7 @@ namespace TecWare.DE.Odette.Services
 		private int GetSessionId()
 			=> Interlocked.Increment(ref lastSessionId);
 
-		IOdetteFileService IOdetteFileServiceFactory.CreateFileService(string destinationId, string password)
+		IOdetteFileServiceItem IOdetteFileServiceFactory.CreateFileService(string destinationId, string password)
 		{
 			if (destinationId == this.destinationId) // case sensitive
 			{
@@ -894,7 +894,7 @@ namespace TecWare.DE.Odette.Services
 			{
 				Log.Except(e);
 			}
-			} // proc OnSessionStart
+		} // proc OnSessionStart
 
 		private void OnSessionClosed()
 		{

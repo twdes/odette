@@ -14,7 +14,6 @@
 //
 #endregion
 using System;
-using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -25,8 +24,6 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette.Network
 {
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
 	internal sealed class OdetteConnectTcpItem : CronJobItem
 	{
 		private IPEndPoint endPoint = null;
@@ -96,7 +93,7 @@ namespace TecWare.DE.Odette.Network
 								stream = ssl;
 							}
 
-							protocol.StartProtocol(new OdetteNetworkStream(stream, channelName, Config), true);
+							protocol.StartProtocol(NetworkHelper.CreateNetworkChannel(stream, channelName, Config), true);
 						}
 						catch (Exception e)
 						{

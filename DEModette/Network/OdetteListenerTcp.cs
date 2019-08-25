@@ -20,14 +20,11 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using TecWare.DE.Server;
 using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette.Network
 {
-	///////////////////////////////////////////////////////////////////////////////
-	/// <summary></summary>
 	internal sealed class OdetteListenerTcpItem : DEConfigItem
 	{
 		private const SslProtocols defaultSslProtocols = SslProtocols.Default | SslProtocols.Tls11 | SslProtocols.Tls12;
@@ -106,7 +103,7 @@ namespace TecWare.DE.Odette.Network
 			var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
 
 			// start the protocol
-			protocol.StartProtocol(new OdetteNetworkStream(socket, "tcp:" + serverTcp.GetStreamInfo(socket), Config), false);
+			protocol.StartProtocol(NetworkHelper.CreateNetworkChannel(socket, "tcp:" + serverTcp.GetStreamInfo(socket), Config), false);
 		} // proc CreateHandler
 
 		private void CreateSslHandler(Stream socket)
@@ -122,7 +119,7 @@ namespace TecWare.DE.Odette.Network
 				await ssl.AuthenticateAsServerAsync(serverCertificate, clientCertificateRequired, sslProtocols, false); // no revocation
 
 				var protocol = this.GetService<OdetteFileTransferProtocolItem>(true);
-				protocol.StartProtocol(new OdetteNetworkStream(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
+				protocol.StartProtocol(NetworkHelper.CreateNetworkChannel(ssl, "ssl:" + serverTcp.GetStreamInfo(socket), Config), false);
 			}
 			catch (Exception e)
 			{

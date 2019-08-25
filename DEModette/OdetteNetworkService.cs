@@ -14,61 +14,32 @@
 //
 #endregion
 using System;
+using System.IO;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
+using System.Xml.Linq;
 using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette
 {
-	#region -- class OdetteNetworkException -------------------------------------------
-
-	/// <summary></summary>
-	public class OdetteNetworkException : Exception
-	{
-		/// <summary></summary>
-		/// <param name="message"></param>
-		public OdetteNetworkException(string message)
-			: base(message)
-		{
-		} // ctor
-	} // class OdetteNetworkException
-
-	#endregion
-
-	#region -- interface IOdetteFtpChannel --------------------------------------------
-
-	/// <summary></summary>
-	public interface IOdetteFtpChannel : IDisposable
-	{
-		/// <summary>Sends a disconnect to communication partner.</summary>
-		/// <returns></returns>
-		Task DisconnectAsync();
-
-		/// <summary>Receive a command.</summary>
-		/// <param name="buffer">Buffer that receives a command, it must have the maximum buffer size.</param>
-		/// <returns>Returns the size of the received command or zero, if the channel is disconnected.</returns>
-		Task<int> ReceiveAsync(byte[] buffer);
-		/// <summary>Send a command.</summary>
-		/// <param name="buffer">Buffer that contains a command.</param>
-		/// <param name="filled">Length of the command.</param>
-		/// <returns></returns>
-		Task SendAsync(byte[] buffer, int filled);
-
-		/// <summary>Unique name for channel, e.g. remote ip + protocol.</summary>
-		string Name { get; }
-		/// <summary>UserData, that will sent to the communication partner on connect.</summary>
-		string UserData { get; }
-		/// <summary>Returns the initial capabilities.</summary>
-		OdetteCapabilities InitialCapabilities { get; }
-	} // class IOdetteFtpChannel
-
-	#endregion
-
 	#region -- class NetworkHelper ----------------------------------------------------
 
 	internal static class NetworkHelper
 	{
+		public static IOdetteFtpChannel CreateNetworkChannel(Stream stream, string name, XElement xConfig)
+		{
+			var capabilities = OdetteCapabilities.None;
+
+			if (xConfig.GetAttribute("allowBufferCompression", false))
+				capabilities |= OdetteCapabilities.BufferCompression;
+			if (xConfig.GetAttribute("allowRestart", false))
+				capabilities |= OdetteCapabilities.Restart;
+			if (xConfig.GetAttribute("allowSecureAuthentification", false))
+				capabilities |= OdetteCapabilities.SecureAuthentification;
+
+			return new OdetteNetworkStream(stream, name, xConfig.GetAttribute("userData", String.Empty), capabilities);
+		} // func CreateNetworkChannel
+
 		public static bool SslRemoteCertificateValidate(LoggerProxy log, bool skipInvalidCertificate, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
 		{
 			if (sslPolicyErrors == SslPolicyErrors.None)
