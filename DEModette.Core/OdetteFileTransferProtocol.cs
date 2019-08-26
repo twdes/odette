@@ -2769,11 +2769,9 @@ namespace TecWare.DE.Odette
 				(EndFileCommand)CreateEmptyCommand<EndFileCommandV2>() :
 				(EndFileCommand)CreateEmptyCommand<EndFileCommandV1>();
 
-			var fileDescription = outFile.Name as IOdetteFileDescription;
-			var format = fileDescription?.Format;
-			if (format.HasValue)
+			if (outFile.Name is IOdetteFileDescription fileDescription)
 			{
-				switch (format.Value)
+				switch (fileDescription.Format)
 				{
 					case OdetteFileFormat.Fixed:
 					case OdetteFileFormat.Variable:
@@ -3131,7 +3129,8 @@ namespace TecWare.DE.Odette
 				)
 			);
 
-			await LogFileServiceExceptionAsync("Update out file state.", () => fileService.UpdateOutFileStateAsync(command));
+			if (!await LogFileServiceExceptionAsync("Update out file state.", () => fileService.UpdateOutFileStateAsync(command)))
+				LogExcept(String.Format("E2E failed for {0}.", OdetteFileImmutable.FormatFileName(command.Name, command.UserData)), asWarning: true);
 			await SendCommandAsync(CreateEmptyCommand<ReadyToReceiveCommand>());
 		} // proc ReceiveEndEndResponseAsync
 

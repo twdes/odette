@@ -77,7 +77,7 @@ namespace TecWare.DE.Odette.Services
 
 					// get the attributes
 					var stringFormat = xDescription.GetAttribute("format", "U");
-					if (string.IsNullOrEmpty(stringFormat))
+					if (String.IsNullOrEmpty(stringFormat))
 						format = OdetteFileFormat.Unstructured;
 					else
 					{
@@ -185,7 +185,7 @@ namespace TecWare.DE.Odette.Services
 					case OdetteFileFormat.Variable:
 						return new OdetteFileStreamVariable(this, false);
 					default:
-						throw new ArgumentOutOfRangeException("format");
+						throw new ArgumentOutOfRangeException(nameof(format));
 				}
 			} // func OpenWrite
 
@@ -201,7 +201,7 @@ namespace TecWare.DE.Odette.Services
 					case OdetteFileFormat.Variable:
 						return new OdetteFileStreamVariable(this, true);
 					default:
-						throw new ArgumentOutOfRangeException("format");
+						throw new ArgumentOutOfRangeException(nameof(format));
 				}
 			} // func OpenRead
 
@@ -287,7 +287,7 @@ namespace TecWare.DE.Odette.Services
 		{
 			private readonly FileItem fileItem;
 			private readonly bool readOnly;
-			private FileStream stream = null;
+			private Stream stream = null;
 
 			#region -- Ctor/Dtor ------------------------------------------------------
 
@@ -321,7 +321,7 @@ namespace TecWare.DE.Odette.Services
 				if (readOnly)
 					throw new InvalidOperationException();
 				if (stream == null)
-					throw new ArgumentNullException("stream");
+					throw new ArgumentNullException(nameof(stream));
 
 				return WriteInternAsync(buf, offset, count, isEoR);
 			} // proc WriteAsync
@@ -428,7 +428,7 @@ namespace TecWare.DE.Odette.Services
 
 			#endregion
 
-			protected FileStream Stream => stream;
+			protected Stream Stream => stream;
 			protected bool IsReadOnly => readOnly;
 			protected FileItem FileItem => fileItem;
 
@@ -659,7 +659,7 @@ namespace TecWare.DE.Odette.Services
 
 		#region -- class FileServiceSession -------------------------------------------
 
-		private sealed class FileServiceSession : IOdetteFileServiceItem
+		private sealed class FileServiceSession : IOdetteFileService2
 		{
 			private readonly int sessionId;
 			private readonly DirectoryFileServiceItem service;
@@ -855,7 +855,7 @@ namespace TecWare.DE.Odette.Services
 		private int GetSessionId()
 			=> Interlocked.Increment(ref lastSessionId);
 
-		IOdetteFileServiceItem IOdetteFileServiceFactory.CreateFileService(string destinationId, string password)
+		IOdetteFileService2 IOdetteFileServiceFactory.CreateFileService(string destinationId, string password)
 		{
 			if (destinationId == this.destinationId) // case sensitive
 			{

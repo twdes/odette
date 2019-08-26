@@ -21,38 +21,14 @@ using TecWare.DE.Stuff;
 
 namespace TecWare.DE.Odette
 {
-	#region -- interface IOdetteFileServiceItem ---------------------------------------
+	#region -- interface IOdetteFileService2 ------------------------------------------
 
-	/// <summary>Implements a file service session for oftp.</summary>
-	public interface IOdetteFileServiceItem : IDisposable
+	/// <summary>Extends the file service session implementation for the server.</summary>
+	public interface IOdetteFileService2 : IOdetteFileService
 	{
-		/// <summary>Creates a new file in the service.</summary>
-		/// <param name="file">Description or the file name. If the description is missing, the file will be handled as a normal binary file.</param>
-		/// <param name="userData"></param>
-		/// <returns></returns>
-		Task<IOdetteFileWriter> CreateInFileAsync(IOdetteFile file, string userData);
-		/// <summary>List of end to end messages, that need to send.</summary>
-		/// <returns></returns>
-		IEnumerable<IOdetteFileEndToEnd> GetEndToEnd();
-
-		/// <summary>Files for send.</summary>
-		/// <returns></returns>
-		IEnumerable<Func<IOdetteFileReader>> GetOutFiles();
-
-		/// <summary>End to end received for a file.</summary>
-		/// <param name="description"></param>
-		Task<bool> UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description);
-
-		/// <summary>Id of the destination.</summary>
-		string DestinationId { get; }
 		/// <summary>Sort order</summary>
 		int Priority { get; }
-
-		/// <summary>Can the service receive files.</summary>
-		bool SupportsInFiles { get; }
-		/// <summary>Can the service send files.</summary>
-		bool SupportsOutFiles { get; }
-	} // interface IOdetteFileService
+	} // interface IOdetteFileService2
 
 	#endregion
 
@@ -66,7 +42,7 @@ namespace TecWare.DE.Odette
 		/// <param name="password">Password of the destination.</param>
 		/// <returns>File session or <c>null</c>, if the service is not responsible for the destination.</returns>
 		/// <exception cref="OdetteFileServiceException">Will result in end session, with Service is currently not available.</exception>
-		IOdetteFileServiceItem CreateFileService(string destinationId, string password);
+		IOdetteFileService2 CreateFileService(string destinationId, string password);
 	} // interface IOdetteFileServiceFactory
 
 	#endregion
@@ -79,7 +55,7 @@ namespace TecWare.DE.Odette
 	{
 		private readonly IServiceProvider sp;
 		private readonly string destinationId;
-		private readonly IOdetteFileServiceItem[] services;
+		private readonly IOdetteFileService[] services;
 
 		#region -- Ctor/Dtor ----------------------------------------------------------
 
@@ -92,7 +68,7 @@ namespace TecWare.DE.Odette
 			var item = sp.GetService<DEConfigItem>(false);
 			if (item != null)
 			{
-				var collected = new List<IOdetteFileServiceItem>();
+				var collected = new List<IOdetteFileService2>();
 
 				item.WalkChildren<IOdetteFileServiceFactory>(
 					f =>
@@ -159,15 +135,14 @@ namespace TecWare.DE.Odette
 
 		/// <summary>End to end received for a file.</summary>
 		/// <param name="description"></param>
-		public async Task UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description)
+		public async Task<bool> UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description)
 		{
 			foreach (var s in services)
 			{
 				if (await s.UpdateOutFileStateAsync(description))
-					return;
+					return true;
 			}
-			
-			throw new OdetteFileServiceException(OdetteAnswerReason.InvalidFilename, String.Format("E2E failed for {0}.", OdetteFileImmutable.FormatFileName(description.Name, description.UserData)), false);
+			return false;
 		} // proc UpdateOutFileState
 
 		/// <summary>File service destination id</summary>

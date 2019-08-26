@@ -55,14 +55,14 @@ namespace TecWare.DE.Odette
 
 	#endregion
 
-	#region -- enum OdetteOutFileState ------------------------------------------------
+	#region -- enum OdetteInFileState -------------------------------------------------
 
 	/// <summary></summary>
 	public enum OdetteInFileState
 	{
 		/// <summary>New incoming file.</summary>
 		Pending,
-		/// <summary>File is complete received.</summary>
+		/// <summary>File is received full, but not processed.</summary>
 		Received,
 		/// <summary>File is successfully processed.</summary>
 		PendingEndToEnd,
@@ -191,7 +191,7 @@ namespace TecWare.DE.Odette
 		/// <param name="reasonText"></param>
 		/// <param name="retryFlag"></param>
 		Task SetTransmissionErrorAsync(OdetteAnswerReason answerReason, string reasonText, bool retryFlag);
-		/// <summary>File transmitted successful</summary>
+		/// <summary>File transmitted successful.</summary>
 		Task SetTransmissionStateAsync();
 
 		/// <summary>Description or name of the file. Is the description missing, it will be sent as binary file.</summary>
@@ -269,7 +269,7 @@ namespace TecWare.DE.Odette
 
 		/// <summary>End to end received for a file.</summary>
 		/// <param name="description"></param>
-		Task UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description);
+		Task<bool> UpdateOutFileStateAsync(IOdetteFileEndToEndDescription description);
 
 		/// <summary>Id of the destination.</summary>
 		string DestinationId { get; }
