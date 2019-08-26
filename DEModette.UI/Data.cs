@@ -167,7 +167,7 @@ namespace TecWare.DE.Odette
 				state = OdetteInFileState.Pending;
 			} // ctor
 
-			internal IOdetteFileWriter CreateWriter()
+			internal Task<IOdetteFileWriter> CreateWriterAsync()
 				=> null; // new OdetteFileWriter(this, );
 
 			IOdetteFile IOdetteFileEndToEndDescription.Name => this;
@@ -246,7 +246,7 @@ namespace TecWare.DE.Odette
 			{
 			} // proc Dispose
 
-			private Task<IOdetteFileWriter> AddFileCore(OdetteFile file)
+			private void AddFileCore(OdetteFile file)
 				=> throw new NotImplementedException();
 
 			public void AddOutFile(string fileName, string userData)
@@ -255,7 +255,23 @@ namespace TecWare.DE.Odette
 			}
 
 			Task<IOdetteFileWriter> IOdetteFileService.CreateInFileAsync(IOdetteFile file, string userData)
-				=> AddFileCore(new OdetteInFile(file, userData, file.SourceOrDestination));
+			{
+				if (file is IOdetteFileDescription fileDescription)
+				{
+					switch (fileDescription.Format)
+					{
+						case OdetteFileFormat.Unstructured:
+						case OdetteFileFormat.Text:
+							break;
+						default:
+							throw new ArgumentException("Unsupported format.");
+					}
+				}
+
+				var newFile = new OdetteInFile(file, userData, file.SourceOrDestination);
+				AddFileCore(newFile);
+				return newFile.CreateWriterAsync();
+			} // func IOdetteFileService.CreateInFileAsync
 
 			IEnumerable<IOdetteFileEndToEnd> IOdetteFileService.GetEndToEnd()
 				=> files.OfType<OdetteInFile>().Where(c => c.InState == OdetteInFileState.PendingEndToEnd);
