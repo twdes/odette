@@ -3,6 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net47</TargetFramework>
     <RootNamespace>TecWare.DE.Odette</RootNamespace>
+    <PackageId>TecWare.DES.Module.Odette.Core</PackageId>
+    <Authors>TecWare</Authors>
+    <Company>TecWare GmbH</Company>
+    <Product>DEServer</Product>
+    <Description>OFTPv2 implementation basic classes.</Description>
+    <PackageProjectUrl>https://github.com/twdes/des</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
