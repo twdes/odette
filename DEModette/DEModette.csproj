@@ -13,6 +13,7 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageProjectUrl>https://github.com/twdes/des</PackageProjectUrl>
+		<PackageLicenseExpression>EUPLv1.2</PackageLicenseExpression>
 	</PropertyGroup>
   <ItemGroup>
 		<Compile Remove="- todo\**" />

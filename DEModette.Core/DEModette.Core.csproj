@@ -9,6 +9,8 @@
     <Product>DEServer</Product>
     <Description>OFTPv2 implementation basic classes.</Description>
     <PackageProjectUrl>https://github.com/twdes/des</PackageProjectUrl>
+    <AssemblyName>DEM.Odette.Core</AssemblyName>
+    <PackageLicenseExpression>EUPLv1.2</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
