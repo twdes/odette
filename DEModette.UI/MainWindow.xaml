@@ -5,8 +5,99 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TecWare.DE.Odette"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="{Binding Path=Name,StringFormat='{}Data Exchange OFTP ({0})'}" Height="450" Width="800">
     <Grid>
-        
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="250" />
+			<ColumnDefinition />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="32" />
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition Height="26"/>
+		</Grid.RowDefinitions>
+
+		<StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+			<Button Content="New" Click="NewDestinationClicked" />
+		</StackPanel>
+		<StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+			<Button Content="Send" CommandParameter="{Binding Path='/'}" Click="SendFileClicked" />
+		</StackPanel>
+
+		<ListBox Grid.Row="1" Grid.Column="0" ItemsSource="{Binding}" IsSynchronizedWithCurrentItem="True">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition />
+							<ColumnDefinition Width="40" />
+							<ColumnDefinition Width="40" />
+						</Grid.ColumnDefinitions>
+						<TextBlock>
+							<Run Text="{Binding Name,Mode=OneWay}" />
+							<Run Text="{Binding DestinationId}" />
+						</TextBlock>
+						<Button Content="Connect" Grid.Column="1" Click="StartDestinationClicked" />
+						<Button Content="Change" Grid.Column="2" Click="ChangeDestinationClicked" />
+					</Grid>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+		</ListBox>
+		<GridSplitter Grid.Row="1" Grid.Column="1" Width="4" HorizontalAlignment="Left" VerticalAlignment="Stretch" />
+
+		<ListBox Grid.Row="1" Grid.Column="1" Margin="4,0,0,0" ItemsSource="{Binding Path='/'}">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition />
+							<ColumnDefinition Width="40" />
+							<ColumnDefinition Width="40" />
+						</Grid.ColumnDefinitions>
+						<TextBlock>
+							<Run Text="{Binding Type,Mode=OneWay}" />
+							<Run Text="{Binding SourceOrDestination,Mode=OneWay}" />
+							<Run Text="{Binding VirtualFileName,Mode=OneWay}" />
+							<Run Text="{Binding FileStamp,Mode=OneWay}" />
+							(<Run Text="{Binding Status,Mode=OneWay}" />)
+						</TextBlock>
+						<!--<Button Content="Remove" Grid.Column="2" Click="RemoveFileClicked" />-->
+					</Grid>
+				</DataTemplate>
+
+			</ListBox.ItemTemplate>
+		</ListBox>
+
+		<ListBox Grid.Row="2" Grid.ColumnSpan="2" Margin="0,4,0,0" ItemsSource="{Binding Log}" DisplayMemberPath="Text" />
+		<GridSplitter Grid.Row="2" Grid.ColumnSpan="2" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Top"  />
+
+		<DockPanel Grid.Row="3" Grid.ColumnSpan="2" LastChildFill="False">
+	
+			<TextBlock Text="{Binding Path=OdetteId,FallbackValue='&lt;none&gt;'}" ToolTip="Id of this endpoint." Margin="12,0" />
+			<TextBlock Margin="12,0">
+				<TextBlock.Text>
+					<MultiBinding StringFormat="{}port:{0} (local:{1})">
+						<Binding Path="ListenPort" />
+						<Binding Path="ListenLocal" />
+					</MultiBinding>
+				</TextBlock.Text>
+			</TextBlock>
+
+			<Button Click="ListenClick" DockPanel.Dock="Right">
+				<Button.Style>
+					<Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+						<Setter Property="Content" Value="Listen" />
+						<Style.Triggers>
+							<DataTrigger Binding="{Binding IsRunning}" Value="True">
+								<Setter Property="Content" Value="Stop" />
+							</DataTrigger>
+						</Style.Triggers>
+					</Style>
+				</Button.Style>
+			</Button>
+			<Button Content="Properties" Click="PropertiesChangeClick" DockPanel.Dock="Right">
+			</Button>
+		</DockPanel>
     </Grid>
 </Window>

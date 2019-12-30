@@ -471,8 +471,11 @@ namespace TecWare.DE.Odette
 				var endAt = offset + count;
 
 				// encode string
-				for (var i = 0; i < data.Length && offset < endAt; i++)
-					buffer[offset++] = GetLetter(data[i]);
+				if (data != null)
+				{
+					for (var i = 0; i < data.Length && offset < endAt; i++)
+						buffer[offset++] = GetLetter(data[i]);
+				}
 
 				// fill with spaces
 				while (offset < endAt)
@@ -1303,7 +1306,7 @@ namespace TecWare.DE.Odette
 					int readed;
 					(readed, isEoR) = await src.ReadAsync(subRecordBuffer, subRecordBufferLength, readLength);
 					if (readed > 0) // beware of -1 one
-						subRecordBufferLength = subRecordBufferLength + readed;
+						subRecordBufferLength += readed;
 				}
 
 				if (subRecordBufferLength <= 0) // end of stream
@@ -1326,11 +1329,10 @@ namespace TecWare.DE.Odette
 
 					do  // while is EoR
 					{
-						var repeats = 0; // number of repeats
 						var collectRepeats = true;
 						while (testOffset < subRecordBufferLength)
 						{
-							repeats = FillFromStreamCountRepeats(subRecordBuffer, testOffset, subRecordBufferLength - testOffset, collectRepeats);
+							var repeats = FillFromStreamCountRepeats(subRecordBuffer, testOffset, subRecordBufferLength - testOffset, collectRepeats);
 							if (repeats > numberOfRepeatingCharacter)
 							{
 								if (collectRepeats) // use repeats
