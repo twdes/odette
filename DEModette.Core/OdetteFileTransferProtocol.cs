@@ -2089,8 +2089,6 @@ namespace TecWare.DE.Odette
 		{
 			this.channel = channel ?? throw new ArgumentNullException(nameof(channel));
 			this.capabilities = channel.InitialCapabilities;
-
-			LogInfo("Oftp session start.");
 		} // ctor
 
 		public async Task DisconnectAsync()
@@ -3166,6 +3164,8 @@ namespace TecWare.DE.Odette
 
 		public async Task RunAsync(bool initiator)
 		{
+			LogInfo("Oftp session start.");
+
 			var speaker = initiator;
 			var forceChangeDirection = true;
 
