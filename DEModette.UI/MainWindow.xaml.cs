@@ -69,28 +69,15 @@ namespace TecWare.DE.Odette
 
 		private void PropertiesChangeClick(object sender, RoutedEventArgs e)
 		{
-			var dlg = new UI.OdetteParameterDialog();
-
-			dlg.Owner = this;
-			dlg.odetteIdText.Text = data.OdetteId;
-			dlg.odettePasswordText.Text = data.OdettePassword;
-			dlg.listenPortText.Text = data.ListenPort.ToString();
-			dlg.listenLocalOnlyCheck.IsChecked = data.ListenLocal;
-
-			if (dlg.ShowDialog() == true)
-			{
-				data.OdetteId = dlg.odetteIdText.Text;
-				data.OdettePassword = dlg.odettePasswordText.Text;
-				data.ListenPort = Int32.Parse(dlg.listenPortText.Text);
-				data.ListenLocal = dlg.listenLocalOnlyCheck.IsChecked.Value;
-
-				if (data.IsDirty)
-					RunAsync(sender, () => data.SaveAsync()).Silent();
-			}
+			if (new UI.OdetteParameterDialog().ShowEdit(this, data))
+				RunAsync(sender, () => data.SaveAsync()).Silent();
 		} // event PropertiesChangeClick
 
 		private void NewDestinationClicked(object sender, RoutedEventArgs e)
 		{
+			//var newDest = new UI.ProposedObject()
+			//new UI.OdetteFileServiceDialog().ShowNew(this, )
+
 			var dlg = new UI.OdetteFileServiceDialog { Owner = this };
 			dlg.removeButton.Visibility = Visibility.Collapsed;
 

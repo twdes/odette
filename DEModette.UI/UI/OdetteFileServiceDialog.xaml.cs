@@ -23,6 +23,13 @@ namespace TecWare.DE.Odette.UI
 			InitializeComponent();
 		}
 
+		public bool ShowNew(Window owner, ProposedObject data)
+		{
+			Owner = owner;
+
+			return false;
+		} // func ShowNew
+
 		private void OkClicked(object sender, RoutedEventArgs e)
 		{
 			if(String.IsNullOrEmpty(nameText.Text)

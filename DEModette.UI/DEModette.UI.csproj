@@ -61,6 +61,7 @@
     <Compile Include="UI\OdetteParameterDialog.xaml.cs">
       <DependentUpon>OdetteParameterDialog.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\ProposedObject.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

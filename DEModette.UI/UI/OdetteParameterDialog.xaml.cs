@@ -14,15 +14,29 @@ using System.Windows.Shapes;
 
 namespace TecWare.DE.Odette.UI
 {
-	/// <summary>
-	/// Interaction logic for OdetteParameterDialog.xaml
-	/// </summary>
 	public partial class OdetteParameterDialog : Window
 	{
 		public OdetteParameterDialog()
 		{
 			InitializeComponent();
 		}
+
+		public bool ShowEdit(Window owner, Data data)
+		{
+			Owner = owner;
+
+			var proposedData = new ProposedObject(data);
+			DataContext = proposedData;
+			if(ShowDialog() == true)
+			{
+				if (proposedData.IsDirty)
+				{
+					proposedData.Update();
+					return true;
+				}
+			}
+			return false;
+		} // proc ShowEdit
 
 		private void OkClicked(object sender, RoutedEventArgs e)
 		{

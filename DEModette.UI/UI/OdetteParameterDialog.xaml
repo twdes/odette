@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TecWare.DE.Odette.UI"
         mc:Ignorable="d"
-        Title="Properties" SizeToContent="WidthAndHeight" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" >
+        Title="{Binding Path=Name,Mode=OneWay,StringFormat='{}Propierties of {0}'}" SizeToContent="WidthAndHeight" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
     <Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition />
@@ -21,13 +21,13 @@
 		</Grid.RowDefinitions>
 
 		<Label Grid.Row="0" Grid.Column="0" Content="Odette Id:" />
-		<TextBox x:Name="odetteIdText" Grid.Row="0" Grid.Column="1" />
+		<TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Path=OdetteId}" />
 		<Label Grid.Row="1" Grid.Column="0" Content="Password:" />
-		<TextBox x:Name="odettePasswordText" Grid.Row="1" Grid.Column="1" />
+		<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Path=OdettePassword}"/>
 
 		<Label Grid.Row="3" Grid.Column="0" Content="Listen port:" />
-		<TextBox x:Name="listenPortText" Grid.Row="3" Grid.Column="1" />
-		<CheckBox x:Name="listenLocalOnlyCheck" Grid.Row="4" Grid.Column="1" Content="Listen local only" />
+		<TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Path=ListenPort}" />
+		<CheckBox Grid.Row="4" Grid.Column="1" Content="Listen local only" IsChecked="{Binding Path=ListenLocal}" />
 
 		<StackPanel Grid.Row="6" Grid.ColumnSpan="2" HorizontalAlignment="Right" Orientation="Horizontal">
 			<Button Content="Ok" Width="70" Margin="6" Click="OkClicked" />

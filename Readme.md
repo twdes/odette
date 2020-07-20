@@ -21,3 +21,7 @@ Kompatibilität:
 - Dateisignierung				Nein
 - EERP-Signierung				Nein
 - Verwendung als Gateway		Nein
+
+#### Test for connection
+
+openssl s_client -showcerts -connect edi.<dns>.de:6619

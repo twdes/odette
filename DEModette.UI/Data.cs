@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -681,7 +680,7 @@ namespace TecWare.DE.Odette
 			} // proc LogExcept
 
 			protected override void LogInfo(string message)
-				=> data?.AddLog(message);
+				=> data.AddLog(message);
 
 			/// <summary>Own id</summary>
 			protected override string OdetteId => data.odetteId;
@@ -916,6 +915,9 @@ namespace TecWare.DE.Odette
 
 		private async Task RunAsync(Socket s)
 		{
+			//var ssl = new SslStream(s, false);
+			//ssl.AuthenticateAsServerAsync(serverCertificate, true, SslProtocols.Default, true);
+
 			using (var channel = new OdetteNetworkStream(new NetworkStream(s, true), "Listener", null, OdetteCapabilities.Receive | OdetteCapabilities.Send))
 			{
 				var ftp = new OdetteFtp(this, channel);
