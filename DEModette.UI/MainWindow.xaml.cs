@@ -70,7 +70,7 @@ namespace TecWare.DE.Odette
 		private void PropertiesChangeClick(object sender, RoutedEventArgs e)
 		{
 			if (new UI.OdetteParameterDialog().ShowEdit(this, data))
-				RunAsync(sender, () => data.SaveAsync()).Silent();
+				RunAsync(sender, () => data.SaveAsync()).Spawn();
 		} // event PropertiesChangeClick
 
 		private void NewDestinationClicked(object sender, RoutedEventArgs e)
@@ -93,7 +93,7 @@ namespace TecWare.DE.Odette
 				dest.UseSsl = dlg.destinationUseSsl.IsChecked.Value;
 
 				if (data.IsDirty)
-					RunAsync(sender, () => data.SaveAsync()).Silent();
+					RunAsync(sender, () => data.SaveAsync()).Spawn();
 			}
 		}
 
@@ -123,7 +123,7 @@ namespace TecWare.DE.Odette
 				}
 
 				if (data.IsDirty)
-					RunAsync(sender, () => data.SaveAsync()).Silent();
+					RunAsync(sender, () => data.SaveAsync()).Spawn();
 			}
 		}
 
@@ -146,13 +146,13 @@ namespace TecWare.DE.Odette
 				Multiselect = true
 			};
 			if (dlg.ShowDialog(this) == true)
-				AddFilesAsync(dest, dlg.FileNames).Silent(RunDestinationFailed);
+				AddFilesAsync(dest, dlg.FileNames).Spawn(RunDestinationFailed);
 		}
 
 		private void StartDestinationClicked(object sender, RoutedEventArgs e)
 		{
 			var dest = (IOdetteDestination)((Button)sender).DataContext;
-			dest.RunAsync().Silent(RunDestinationFailed);
+			dest.RunAsync().Spawn(RunDestinationFailed);
 		}
 
 		private void RunDestinationFailed(Exception e)

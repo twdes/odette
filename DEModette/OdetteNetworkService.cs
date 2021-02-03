@@ -39,48 +39,6 @@ namespace TecWare.DE.Odette
 
 			return new OdetteNetworkStream(stream, name, xConfig.GetAttribute("userData", String.Empty), capabilities);
 		} // func CreateNetworkChannel
-
-		public static bool SslRemoteCertificateValidate(LoggerProxy log, bool skipInvalidCertificate, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-		{
-			if (sslPolicyErrors == SslPolicyErrors.None)
-				return true;
-
-			using (var m = log.CreateScope(skipInvalidCertificate ? LogMsgType.Warning : LogMsgType.Error))
-			{
-				m.WriteLine("Remote certification validation failed ({0}).", sslPolicyErrors);
-				m.WriteLine();
-				m.WriteLine("Remote Certificate:");
-				if (certificate != null)
-				{
-					m.WriteLine("  Subject: {0}", certificate.Subject);
-					m.WriteLine("  CertHash: {0}", certificate.GetCertHashString());
-					m.WriteLine("  Expiration: {0}", certificate.GetExpirationDateString());
-					m.WriteLine("  Serial: {0}", certificate.GetSerialNumberString());
-					m.WriteLine("  Algorithm: {0}", certificate.GetKeyAlgorithmParametersString());
-				}
-				else
-				{
-					m.WriteLine("  <null>");
-					// no chance to skip
-					return skipInvalidCertificate;
-				}
-
-				m.WriteLine("Chain:");
-
-				var i = 0;
-				foreach (var c in chain.ChainElements)
-				{
-					m.Write("  - {0}", c.Certificate?.Subject);
-					if (i < chain.ChainStatus.Length)
-						m.WriteLine(" --> {0}, {1}", chain.ChainStatus[i].Status, chain.ChainStatus[i].StatusInformation);
-					else
-						m.WriteLine();
-					i++;
-				}
-			}
-
-			return skipInvalidCertificate;
-		} // func SslRemoteCertificateValidate
 	} // class NetworkHelper
 
 	#endregion

@@ -127,9 +127,9 @@ namespace TecWare.DE.Odette.Network
 				ssl?.Dispose();
 			}
 		} // func CreateSslHandler
-		
+
 		private bool SslRemoteCertificateValidateCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-			=> NetworkHelper.SslRemoteCertificateValidate(Log, skipInvalidCertificate, certificate, chain, sslPolicyErrors);
+			=> Server.CheckServerCertificate(Log, sender, certificate, chain, sslPolicyErrors) || skipInvalidCertificate;
 
 		#endregion
 	} // class OdetteListenerTcpItem

@@ -112,7 +112,7 @@ namespace TecWare.DE.Odette.Network
 		} // proc OnRunJobAsync
 		
 		private bool SslRemoteCertificateValidateCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-			=> NetworkHelper.SslRemoteCertificateValidate(Log, false, certificate, chain, sslPolicyErrors);
+			=> Server.CheckServerCertificate(Log, sender, certificate, chain, sslPolicyErrors);
 
 		protected override bool CanRunParallelTo(ICronJobItem o)
 		{
