@@ -28,6 +28,11 @@
 							</xs:restriction>
 						</xs:simpleType>
 					</xs:attribute>
+					<xs:attribute name="priority" type="xs:int" use="required">
+						<xs:annotation>
+							<xs:documentation>Define priority for service selection.</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
 					<xs:attribute name="passwordHash" type="xs:string" use="optional">
 						<xs:annotation>
 							<xs:documentation>Password definition for the destination.</xs:documentation>
