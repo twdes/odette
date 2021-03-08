@@ -2873,7 +2873,7 @@ namespace TecWare.DE.Odette
 							}
 						case StartFileNegativeAnswerCommand c: // file transmit failed
 							m.SetType('W')
-								.WriteLine("File not accepted: [{c.AnswerReason},r={c.ReasonText}] {c.RetryFlag}");
+								.WriteLine($"File not accepted: [{c.AnswerReason},r={c.ReasonText}] {c.RetryFlag}");
 
 							await LogFileServiceExceptionAsync("Set error state.", () => outFile.SetTransmissionErrorAsync(c.AnswerReason, c.ReasonText, c.RetryFlag));
 							return false;
