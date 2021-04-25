@@ -2735,7 +2735,7 @@ namespace TecWare.DE.Odette
 
 			// common attributes
 			var fileDescription = outFile.Name as IOdetteFileDescription;
-			var filePosition = outFile as IOdetteFilePosition;
+			// var filePosition = outFile as IOdetteFilePosition;
 
 			sfid.VirtualFileName = outFile.Name.VirtualFileName;
 			sfid.UserData = outFile.UserData;
@@ -2894,8 +2894,8 @@ namespace TecWare.DE.Odette
 				void initV1(EndEndResponseCommand c)
 				{
 					c.VirtualFileName = f.Name.VirtualFileName;
-					c.Destination = fileService.DestinationId;
-					c.Originator = OdetteId; // f.Name.Originator;
+					c.Destination = f.Name.SourceOrDestination;
+					c.Originator = OdetteId;;
 					c.FileStamp = f.Name.FileStamp;
 					c.UserData = f.UserData;
 				}
@@ -2924,8 +2924,8 @@ namespace TecWare.DE.Odette
 					c =>
 					{
 						c.VirtualFileName = f.Name.VirtualFileName;
-						c.Destination = fileService.DestinationId;
-						c.Originator = OdetteId; // f.Name.Originator;
+						c.Destination = f.Name.SourceOrDestination;
+						c.Originator = OdetteId;
 						c.FileStamp = f.Name.FileStamp;
 						c.Creator = OdetteId;
 						c.ReasonCode = f.ReasonCode;

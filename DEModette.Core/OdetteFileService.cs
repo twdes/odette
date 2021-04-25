@@ -81,7 +81,7 @@ namespace TecWare.DE.Odette
 		string VirtualFileName { get; }
 		/// <summary>Time stamp of the file</summary>
 		DateTime FileStamp { get; }
-		/// <summary>Source or destination of the file.</summary>
+		/// <summary>Source or destination of the file (originator).</summary>
 		string SourceOrDestination { get; }
 	} // interface IOdetteFile
 
