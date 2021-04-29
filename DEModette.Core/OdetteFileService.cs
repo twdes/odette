@@ -82,7 +82,7 @@ namespace TecWare.DE.Odette
 		/// <summary>Time stamp of the file</summary>
 		DateTime FileStamp { get; }
 		/// <summary>Source or destination of the file (originator).</summary>
-		string SourceOrDestination { get; }
+		string Originator { get; }
 	} // interface IOdetteFile
 
 	#endregion
@@ -94,17 +94,17 @@ namespace TecWare.DE.Odette
 	{
 		private readonly string virtualFileName;
 		private readonly DateTime fileStamp;
-		private readonly string sourceOrDestination;
+		private readonly string originator;
 
 		/// <summary></summary>
 		/// <param name="virtualFileName"></param>
 		/// <param name="fileStamp"></param>
-		/// <param name="sourceOrDestination"></param>
-		public OdetteFileImmutable(string virtualFileName, DateTime fileStamp, string sourceOrDestination)
+		/// <param name="originator"></param>
+		public OdetteFileImmutable(string virtualFileName, DateTime fileStamp, string originator)
 		{
 			this.virtualFileName = virtualFileName;
 			this.fileStamp = fileStamp;
-			this.sourceOrDestination = sourceOrDestination;
+			this.originator = originator;
 		} // ctor
 
 		/// <summary></summary>
@@ -117,14 +117,14 @@ namespace TecWare.DE.Odette
 		/// <summary></summary>
 		public DateTime FileStamp => fileStamp;
 		/// <summary></summary>
-		public string SourceOrDestination => sourceOrDestination;
+		public string Originator => originator;
 
 		/// <summary></summary>
 		/// <param name="file"></param>
 		/// <param name="userData"></param>
 		/// <returns></returns>
 		public static string FormatFileName(IOdetteFile file, string userData)
-			=> file.SourceOrDestination + "/" + file.VirtualFileName + "[userData=" + userData + "]";
+			=> file.Originator + "/" + file.VirtualFileName + "[userData=" + userData + "]";
 	} // class OdetteFileImmutable
 
 	#endregion

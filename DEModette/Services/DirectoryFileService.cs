@@ -43,7 +43,7 @@ namespace TecWare.DE.Odette.Services
 
 			private readonly string virtualFileName;
 			private readonly DateTime fileStamp;
-			private readonly string sourceOrDestination;
+			private readonly string originator;
 
 			private readonly OdetteFileFormat format = OdetteFileFormat.Unstructured;
 			private readonly int maximumRecordSize;
@@ -63,7 +63,7 @@ namespace TecWare.DE.Odette.Services
 
 				this.virtualFileName = file.VirtualFileName;
 				this.fileStamp = file.FileStamp;
-				this.sourceOrDestination = file.SourceOrDestination;
+				this.originator = file.Originator;
 
 				var fiExtended = new FileInfo(GetExtendedFile());
 				var readed = false;
@@ -159,7 +159,7 @@ namespace TecWare.DE.Odette.Services
 						"  Description: {8}"
 					),
 					fileInfo.Name,
-					sourceOrDestination,
+					originator,
 					virtualFileName,
 					fileStamp,
 					format,
@@ -238,7 +238,7 @@ namespace TecWare.DE.Odette.Services
 
 			public string VirtualFileName => virtualFileName;
 			public DateTime FileStamp => fileStamp;
-			public string SourceOrDestination => sourceOrDestination;
+			public string Originator => originator;
 
 			public OdetteFileFormat Format => format;
 			public int MaximumRecordSize => maximumRecordSize;
@@ -963,13 +963,13 @@ namespace TecWare.DE.Odette.Services
 		private static string GetFileName(IOdetteFile fileDescription)
 		{
 			if (fileDescription == null)
-				throw new ArgumentNullException("fileDescription");
+				throw new ArgumentNullException(nameof(fileDescription));
 			if (String.IsNullOrEmpty(fileDescription.VirtualFileName))
-				throw new ArgumentNullException("VirtualFileName");
+				throw new ArgumentNullException(nameof(IOdetteFile.VirtualFileName));
 			if (fileDescription.FileStamp == null)
-				throw new ArgumentNullException("FileStamp");
+				throw new ArgumentNullException(nameof(IOdetteFile.FileStamp));
 
-			return fileDescription.SourceOrDestination + "#" +
+			return fileDescription.Originator + "#" +
 				fileDescription.VirtualFileName + "#" +
 				fileDescription.FileStamp.ToString(fileStampFormat, CultureInfo.InvariantCulture);
 		} // func GetFileName

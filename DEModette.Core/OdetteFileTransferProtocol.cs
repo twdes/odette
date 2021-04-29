@@ -857,7 +857,7 @@ namespace TecWare.DE.Odette
 				set => WriteAscii(48, 8, value);
 			} // prop VirtualFileDatasetName
 
-			string IOdetteFile.SourceOrDestination => Destination;
+			string IOdetteFile.Originator => Originator;
 
 			public string Destination
 			{
@@ -1783,7 +1783,7 @@ namespace TecWare.DE.Odette
 				set => WriteAscii(81, 25, value);
 			} // prop Originator
 
-			string IOdetteFile.SourceOrDestination => Originator; // originator is the orginal destination
+			string IOdetteFile.Originator => Originator; // originator is the orginal destination
 
 			public abstract int ReasonCode { get; }
 			public abstract string ReasonText { get; }
@@ -1914,7 +1914,7 @@ namespace TecWare.DE.Odette
 				set => WriteAscii(76, 25, value);
 			} // prop Originator
 
-			string IOdetteFile.SourceOrDestination => Destination; // destination is the orginal originator
+			string IOdetteFile.Originator => Originator; // destination is the orginal originator
 
 			public string Creator
 			{
@@ -2744,7 +2744,7 @@ namespace TecWare.DE.Odette
 			sfid.Format = fileDescription?.Format ?? OdetteFileFormat.Unstructured;
 			sfid.RestartPosition = restartLength = RestartLength(sfid.Format, outFile);
 			sfid.MaximumRecordSize = fileDescription?.MaximumRecordSize ?? 0;
-			sfid.Destination = outFile.Name.SourceOrDestination;
+			sfid.Destination = outFile.Name.Originator;
 			sfid.Originator = OdetteId;
 
 			// special handling for Rev2
@@ -2894,7 +2894,7 @@ namespace TecWare.DE.Odette
 				void initV1(EndEndResponseCommand c)
 				{
 					c.VirtualFileName = f.Name.VirtualFileName;
-					c.Destination = f.Name.SourceOrDestination;
+					c.Destination = f.Name.Originator;
 					c.Originator = OdetteId;;
 					c.FileStamp = f.Name.FileStamp;
 					c.UserData = f.UserData;
@@ -2924,7 +2924,7 @@ namespace TecWare.DE.Odette
 					c =>
 					{
 						c.VirtualFileName = f.Name.VirtualFileName;
-						c.Destination = f.Name.SourceOrDestination;
+						c.Destination = f.Name.Originator;
 						c.Originator = OdetteId;
 						c.FileStamp = f.Name.FileStamp;
 						c.Creator = OdetteId;
