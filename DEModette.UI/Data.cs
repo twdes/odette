@@ -208,7 +208,7 @@ namespace TecWare.DE.Odette
 			{
 				return String.Compare(virtualFileName, other.VirtualFileName, StringComparison.OrdinalIgnoreCase) == 0
 					|| fileStamp == other.FileStamp
-					|| SourceOrDestination == other.SourceOrDestination;
+					|| Originator == other.Originator;
 			} // func Equals
 
 			protected virtual void CreateState(XElement x)
@@ -243,7 +243,7 @@ namespace TecWare.DE.Odette
 
 			public string VirtualFileName => virtualFileName;
 			public DateTime FileStamp => fileStamp;
-			public abstract string SourceOrDestination { get; }
+			public abstract string Originator { get; }
 
 			public string UserData => userData;
 
@@ -326,7 +326,7 @@ namespace TecWare.DE.Odette
 				OnPropertyChanged(nameof(Status));
 			} // proc CommitFileAsync
 
-			public override string SourceOrDestination => sourceId;
+			public override string Originator => sourceId;
 
 			public OdetteInFileState InState => state;
 			public override string Status => state.ToString();
@@ -409,7 +409,7 @@ namespace TecWare.DE.Odette
 				await SaveStateAsync();
 			} // func SetEndToEndAsync
 
-			public override string SourceOrDestination => FileService.DestinationId;
+			public override string Originator => FileService.DestinationId;
 
 			public OdetteOutFileState OutState => state;
 			public override string Status => state.ToString();
@@ -540,7 +540,7 @@ namespace TecWare.DE.Odette
 				}
 
 				// mark file as receiving
-				var newFile = new OdetteInFile(this, file, userData, file.SourceOrDestination);
+				var newFile = new OdetteInFile(this, file, userData, file.Originator);
 				AddFileCore(newFile);
 				return newFile.CreateWriterAsync();
 			} // func IOdetteFileService.CreateInFileAsync
