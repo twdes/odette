@@ -14,6 +14,7 @@
 //
 #endregion
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -42,6 +43,7 @@ namespace TecWare.DE.Odette.Network
 		public OdetteListenerTcpItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
+			PublishItem(new DEConfigItemPublicAction("refreshCertificate") { DisplayName = "Research Servercertificate" });
 		} // ctor
 
 		protected override void Dispose(bool disposing)
@@ -59,17 +61,7 @@ namespace TecWare.DE.Odette.Network
 			// is there the tcp listener
 			serverTcp = this.GetService<IServerTcp>(true);
 
-			var useSsl = config.ConfigNew.GetAttribute("ssl", String.Empty);
-			if (String.IsNullOrEmpty(useSsl))
-				serverCertificate = null;
-			else
-			{
-				Log.Info("Try to locate certificate: {0}", useSsl);
-				serverCertificate = (from crt in ProcsDE.FindCertificate(useSsl) orderby crt.NotAfter descending select crt).FirstOrDefault();
-				if (serverCertificate == null)
-					throw new ArgumentException("Server certificate not found.");
-				Log.Info("Locate certificate: {0} {1}", serverCertificate.Thumbprint, serverCertificate.Subject);
-			}
+			UpdateServerCertificate(config.ConfigNew.GetAttribute("ssl", String.Empty));
 		} // proc OnBeginReadConfiguration
 
 		protected override void OnEndReadConfiguration(IDEConfigLoading config)
@@ -93,6 +85,22 @@ namespace TecWare.DE.Odette.Network
 					new Action<Stream>(CreateHandler)
 			);
 		} // proc OnEndReadConfiguration
+
+		private void UpdateServerCertificate(string useSsl)
+		{
+			if (String.IsNullOrEmpty(useSsl))
+				serverCertificate = null;
+			else
+			{
+				Log.Info("Try to locate certificate: {0}", useSsl);
+				serverCertificate = (from crt in ProcsDE.FindCertificate(useSsl) orderby crt.NotAfter descending select crt).FirstOrDefault();
+				if (serverCertificate == null)
+					throw new ArgumentException("Server certificate not found.");
+				Log.Info("Locate certificate: {0} {1}", serverCertificate.Thumbprint, serverCertificate.Subject);
+			}
+
+			OnPropertyChanged(nameof(ServerCertificateThumbprint));
+		} // proc UpdateServerCertificate
 
 		#endregion
 
@@ -132,5 +140,18 @@ namespace TecWare.DE.Odette.Network
 			=> Server.CheckServerCertificate(Log, sender, certificate, chain, sslPolicyErrors) || skipInvalidCertificate;
 
 		#endregion
+
+		[DEConfigHttpAction("refreshCertificate", IsAutoLog = true, IsSafeCall = true, SecurityToken = SecuritySys)]
+		internal void RefreshCertificate()
+			=> UpdateServerCertificate(ConfigNode.GetAttribute<string>("useSsl"));
+
+		/// <summary>Current server certificate thumbprint</summary>
+		[
+		PropertyName("tw_oftp_servercert"),
+		DisplayName("ServerCertificate"),
+		Description("Current server certificate thumbprint."),
+		Category(ConfigurationCategory)
+		]
+		public string ServerCertificateThumbprint => serverCertificate?.Thumbprint;
 	} // class OdetteListenerTcpItem
 }
