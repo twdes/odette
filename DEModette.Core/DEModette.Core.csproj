@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net47</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <RootNamespace>TecWare.DE.Odette</RootNamespace>
     <PackageId>TecWare.DES.Module.Odette.Core</PackageId>
     <Authors>TecWare</Authors>

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <RootNamespace>TecWare.DE.Odette</RootNamespace>
     <AssemblyName>DEM.Odette</AssemblyName>
-		<TargetFramework>net47</TargetFramework>
+		<TargetFramework>net48</TargetFramework>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageId>TecWare.DES.Module.Odette</PackageId>
 		<Product>DEServer</Product>
