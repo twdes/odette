@@ -63,7 +63,7 @@ namespace TecWare.DE.Odette
 				else
 					log.LogMsg(asWarning ? LogMsgType.Warning : LogMsgType.Error, message ?? e.Message, e);
 			} // proc LogExcept
-			protected override bool IsDebugEnabled => item.IsDebugCommandsEnabled;
+			protected override bool IsDebugEnabled => item.IsDebug;
 
 			#endregion
 
@@ -83,7 +83,6 @@ namespace TecWare.DE.Odette
 		#endregion
 
 		private readonly DEThread threadProtocol;
-		private bool debugCommands = false;
 
 		private readonly DEList<OdetteFtp> activeProtocols;
 
@@ -99,8 +98,7 @@ namespace TecWare.DE.Odette
 
 			PublishItem(activeProtocols = new DEList<OdetteFtp>(this, "tw_protocols", "Protocols"));
 
-			PublishItem(new DEConfigItemPublicAction("debugOn") { DisplayName = "Debug(on)" });
-			PublishItem(new DEConfigItemPublicAction("debugOff") { DisplayName = "Debug(off)" });
+			PublishDebugInterface();
 		} // ctor
 
 		/// <summary></summary>
@@ -207,37 +205,10 @@ namespace TecWare.DE.Odette
 
 		#endregion
 
-		[DEConfigHttpAction("debugOn", IsSafeCall = true, SecurityToken = SecuritySys)]
-		private XElement SetDebugCommandsOn()
-			=> SetDebugCommands(true);
-
-		[DEConfigHttpAction("debugOff", IsSafeCall = true, SecurityToken = SecuritySys)]
-		private XElement SetDebugCommandsOff()
-			=> SetDebugCommands(false);
-
-		[DEConfigHttpAction("debug", IsSafeCall = true, SecurityToken = SecuritySys)]
-		private XElement SetDebugCommands(bool on = false)
-		{
-			debugCommands = on;
-			OnPropertyChanged(nameof(IsDebugCommandsEnabled));
-			return new XElement("return", new XAttribute("debug", debugCommands));
-		} // func SetDebugCommands
-
 		/// <summary></summary>
 		public string OdetteId => Config.GetAttribute("odetteId", String.Empty);
 		/// <summary></summary>
 		public string OdettePassword => Config.GetAttribute("odettePassword", String.Empty);
-
-
-		/// <summary></summary>
-		[
-		PropertyName("tw_oftp_debug"),
-		DisplayName("Debug Commands"),
-		Description("Should the system log the in and outgoing oftp packets."),
-		Category("OFTP"),
-		Format("{0:XiB}")
-		]
-		public bool IsDebugCommandsEnabled => debugCommands;
 	} // class OdetteFileTransferProtocolItem
 
 	#endregion

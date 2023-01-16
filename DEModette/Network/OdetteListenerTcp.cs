@@ -143,7 +143,7 @@ namespace TecWare.DE.Odette.Network
 
 		[DEConfigHttpAction("refreshCertificate", IsAutoLog = true, IsSafeCall = true, SecurityToken = SecuritySys)]
 		internal void RefreshCertificate()
-			=> UpdateServerCertificate(ConfigNode.GetAttribute<string>("useSsl"));
+			=> UpdateServerCertificate(ConfigNode.GetAttribute<string>("ssl"));
 
 		/// <summary>Current server certificate thumbprint</summary>
 		[

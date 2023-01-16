@@ -53,7 +53,6 @@ namespace TecWare.DE.Odette
 	/// sessions for the current destination.</summary>
 	internal sealed class OdetteFileService : IOdetteFileService, IDisposable
 	{
-		private readonly IServiceProvider sp;
 		private readonly string destinationId;
 		private readonly IOdetteFileService[] services;
 
@@ -61,7 +60,6 @@ namespace TecWare.DE.Odette
 
 		public OdetteFileService(IServiceProvider sp, string destinationId, string password)
 		{
-			this.sp = sp;
 			this.destinationId = destinationId;
 
 			// Search for the file providers
