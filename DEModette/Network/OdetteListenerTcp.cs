@@ -43,7 +43,7 @@ namespace TecWare.DE.Odette.Network
 		public OdetteListenerTcpItem(IServiceProvider sp, string name)
 			: base(sp, name)
 		{
-			PublishItem(new DEConfigItemPublicAction("refreshCertificate") { DisplayName = "Research Servercertificate" });
+			PublishItem(new DEConfigItemPublicAction("refreshCertificate") { DisplayName = "Scan Servercertificate" });
 		} // ctor
 
 		protected override void Dispose(bool disposing)
